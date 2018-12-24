@@ -59,7 +59,7 @@ class Simulator:
 
     def get_shortest_path(mtx, src, dest):
         visited = set()
-        q = [[root]]
+        q = [[src]]
         while q:
             path = q.pop(0)
             front = path[-1]
