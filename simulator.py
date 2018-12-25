@@ -1,4 +1,5 @@
 import random
+import math
 
 class Simulator:
 
@@ -10,8 +11,10 @@ class Simulator:
     producers = []
     routers = []
 
-    def __init__(self, num_consumers, num_producers, num_routers):
+    def __init__(self, num_consumers, num_producers, grid_rows = 3, grid_cols = 3):
        
+        num_routers = grid_rows * grid_cols
+
         # assign consumers and producers with gateway routers
         consumers = []
         for i in range(num_consumers):
@@ -24,31 +27,31 @@ class Simulator:
                 Node({'' : random.randint(0, num_routers - 1)}, 0)
             )
 
-        # grid topology for routers
-        router_mtx = []
+        # init grid topology matrix for routers
+        adj_mtx = []
         for i in range(num_routers):
+            adj_mtx.append([])
             for j in range(num_routers):
                 if i == j:
-                    router_mtx[i, j] = 1
+                    adj_mtx[-1].append(1)
                 else:
-                    router_mtx[i, j] = 0
-
+                    adj_mtx[-1].append(0)
+        
+        # connect routers in a grid
         for i in range(num_routers):
-            for j in range(num_routers):         
-                if i > 0:
-                    router_mtx[i - 1, j] = 1
-                if i + 1 < num_routers:
-                    router_mtx[i + 1, j] = 1
-                if j + 1 < num_routers:
-                    router_mtx[i, j + 1] = 1
-                if j - 1 > 0:
-                    router_mtx[i, j - 1] = 1
+            row_ix = i // grid_cols % grid_rows
+            col_ix = i % grid_cols
+            for j in range(num_routers):
+                pair_row_ix = j // grid_cols % grid_rows
+                pair_col_ix = j % grid_cols
+                if abs(pair_row_ix - row_ix) + abs(pair_col_ix - col_ix) == 1:
+                    adj_mtx[i][j] = 1
 
         # set fib for routers
         for i in range(num_routers):
             fib = {}
             for p in producers:
-                fib.append(p.get_name(), get_best_hop(i, p.get_gateway()))
+                fib[p.get_name()] = get_best_hop(adj_mtx, i, p.get_gateway()))
             routers.append(
                 Node(fib, CACHE_SIZE)
             )
