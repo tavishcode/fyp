@@ -77,4 +77,4 @@ class Simulator:
                     q.append(new_path)
 
     def get_best_hop(mtx, src, dest):
-        return get_shortest_path(src, dest)[1]
+        return get_shortest_path(mtx, src, dest)[1]
