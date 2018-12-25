@@ -16,14 +16,12 @@ class Simulator:
         num_routers = grid_rows * grid_cols
 
         # assign consumers and producers with gateway routers
-        consumers = []
         for i in range(num_consumers):
-            consumers.append(
+            self.consumers.append(
                 Node({'' : random.randint(0, num_routers - 1)}, 0)
             )
-        producers = []
         for i in range(num_producers):
-            producers.append(
+            self.producers.append(
                 Node({'' : random.randint(0, num_routers - 1)}, 0)
             )
 
@@ -53,7 +51,7 @@ class Simulator:
             for p in producers:
                 if i != p.get_gateway():
                     fib[p.get_name()] = get_best_hop(adj_mtx, i, p.get_gateway())
-            routers.append(
+            self.routers.append(
                 Node(fib, CACHE_SIZE)
             )
     
