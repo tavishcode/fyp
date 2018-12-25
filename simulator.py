@@ -1,5 +1,6 @@
 import random
 import math
+from random import choices
 
 class Simulator:
 
@@ -55,9 +56,18 @@ class Simulator:
                 Node(fib, CACHE_SIZE)
             )
     
-        # TODO: init content types
-        # TODO: init pop rankings for each content type  
-        # TODO: set requesting loops for consumers
+        #set content names
+        content_types = ['a' + str(x) for x in range(0, NUM_CONTENT_TYPES)]
+        
+        #generate probability distribution
+        ZIPF_S = 1.2
+        zipf_weights = [(1/k**ZIPF_S)/ (sum([1/n**ZIPF_S for n in N])) for k in range(1,NUM_CONTENT_TYPES+1)]
+
+        #make content requests 
+        for i in range(0, NUM_REQUESTS_PER_CONSUMER):
+            for consumer in consumers:
+                consumer.request(choices(content_types, zipf_weights)[0])
+
 
     def get_shortest_path(mtx, src, dest):
         visited = set()
