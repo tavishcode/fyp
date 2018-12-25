@@ -51,7 +51,8 @@ class Simulator:
         for i in range(num_routers):
             fib = {}
             for p in producers:
-                fib[p.get_name()] = get_best_hop(adj_mtx, i, p.get_gateway())
+                if i != p.get_gateway():
+                    fib[p.get_name()] = get_best_hop(adj_mtx, i, p.get_gateway())
             routers.append(
                 Node(fib, CACHE_SIZE)
             )
@@ -69,8 +70,8 @@ class Simulator:
             visited.add(front)
             if front == dest:
                 return path
-            for neighbor in mtx[front]:
-                if neighbor == 1 and neighbor not in visited:
+            for neighbor, indicator in enumerate(mtx[front]):
+                if indicator == 1 and neighbor not in visited:
                     new_path = list(path)
                     new_path.append(neighbor)
                     q.append(new_path)
