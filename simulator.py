@@ -51,7 +51,7 @@ class Simulator:
         for i in range(num_routers):
             fib = {}
             for p in producers:
-                fib[p.get_name()] = get_best_hop(adj_mtx, i, p.get_gateway()))
+                fib[p.get_name()] = get_best_hop(adj_mtx, i, p.get_gateway())
             routers.append(
                 Node(fib, CACHE_SIZE)
             )
