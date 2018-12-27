@@ -1,33 +1,32 @@
 from contentstore import ContentStore
 from packet import Packet
 
+
 class Node:
     def __init__(self, fib, size):
-        self.name = name
         self.CACHESIZE = size
         self.content_store = ContentStore(size)
-        self.fib = fib
+        self.FIB = fib
+        self.PIT = {}
         
-    def forward(self, pkt, src):
-        for node in fib:
-            node.recieve(pkt,src)
+    def forward(self, pkt: Packet, src):
+        self.FIB[pkt].receive(pkt, src)
         
-
-    def get_gateway():
+    def get_gateway(self):
         return
 
-
-    def recieve(self, pkt: Packet, src):
+    def receive(self, pkt: Packet, src):
         pkt.hopcount+=1 
         if pkt.is_interest:
             found = self.content_store.has(pkt)
-            if found in not None:
+            if found is not None:
                 return found
             else:
-                forward(pkt, src) #TODO add interest packet adn src to PIT
+                self.PIT.update(pkt=src)
+                self.forward(pkt, src)
         else:
-            #TODO to be implemented if PIT
-            print("data packet")
-
-
-    
+            if pkt in self.PIT:
+                for item in self.PIT[pkt]:
+                    item.receive(pkt, src)
+            else:
+                return pkt

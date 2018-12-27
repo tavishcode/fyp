@@ -1,7 +1,7 @@
 # TODO update with sets
 from packet import Packet
 
-class ContentStore: 
+class ContentStore:
     def __init__(self,space):
         self.SIZE = space
         self.store = [None] * self.SIZE 
@@ -11,7 +11,7 @@ class ContentStore:
         for i in range(len(self.store)):
             if self.store[i] is not None:
                 available = available-1
-        return (available ,self.SIZE)
+        return available, self.SIZE
 
     def add_item(self, item):
         self.store.remove()
