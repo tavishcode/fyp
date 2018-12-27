@@ -61,7 +61,7 @@ class Simulator:
         
         #generate probability distribution
         ZIPF_S = 1.2
-        zipf_weights = [(1/k**ZIPF_S)/ (sum([1/n**ZIPF_S for n in N])) for k in range(1,NUM_CONTENT_TYPES+1)]
+        zipf_weights = [(1/k**ZIPF_S)/ (sum([1/n**ZIPF_S for n in NUM_CONTENT_TYPES])) for k in range(1,NUM_CONTENT_TYPES+1)]
 
         #make content requests 
         for i in range(0, NUM_REQUESTS_PER_CONSUMER):
