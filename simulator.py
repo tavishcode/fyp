@@ -43,7 +43,7 @@ class Simulator:
         for i in range(self.NUM_CONTENT_TYPES):
             next_producer = self.producers[i % num_producers]
             content_name = next_producer.get_name() + "_c" + str(i)
-            next_producer.content_store.add_item(Packet(content_name, data=i))
+            next_producer.content_store.add_item(Packet(content_name, data="d"))
             content_types.append(content_name)
     
         

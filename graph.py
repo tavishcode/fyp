@@ -36,8 +36,6 @@ class Graph:
                 pair_col_ix = j % grid_cols
                 if abs(pair_row_ix - row_ix) + abs(pair_col_ix - col_ix) == 1:
                     self.adj_mtx[i][j] = 1
-        
-        print(self.adj_mtx)
 
     def getRouterByName(self, name):
         for r in self.routers:

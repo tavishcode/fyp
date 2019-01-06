@@ -41,13 +41,13 @@ class Node:
     def receive(self, pkt: Packet, src):
         print("Receiving at " + self.name)
         pkt.hop_count+=1 
-        if pkt.is_interest:
+        if pkt.is_interest():
             found = self.content_store.has(pkt)
             if found is not None:
-                return found
+                src.receive(found, self)
             else:
-                self.PIT.update(pkt=src)
-                self.forward(pkt, src)
+                self.PIT[pkt] = src
+                self.forward(pkt, self)
         else:
             if pkt in self.PIT:
                 for item in self.PIT[pkt]:
