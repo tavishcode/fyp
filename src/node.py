@@ -46,12 +46,12 @@ class Node:
             if found is not None:
                 src.receive(found, self)
             else:
-                self.PIT[pkt] = src
+                self.PIT[pkt.get_name()] = src
                 self.forward(pkt, self)
         else:
-            if pkt in self.PIT:
-                for item in self.PIT[pkt]:
-                    item.receive(pkt, src)
+            if pkt.get_name() in self.PIT:
+                self.content_store.add_item(pkt)
+                self.PIT[pkt.get_name()].receive(pkt, src)
             else:
                 return pkt
     
