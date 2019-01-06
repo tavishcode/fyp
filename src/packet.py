@@ -14,3 +14,5 @@ class Packet:
     def get_name(self):
         return self.name
 
+    def getSourceName(self):
+        return self.name.split('_')[0]

@@ -4,32 +4,43 @@ from packet import Packet
 
 
 class Node:
-    def __init__(self, fib, size):
+    def __init__(self, fib, size, name):
         self.CACHESIZE = size
         self.content_store = ContentStore(size)
-        self.FIB = fib # a dict "packet name" : node
+        self.FIB = fib # a dict "node name" : node
         self.PIT = {} # a dict with "packet name" : src node
+        self.name = name
     
     def print_fib(self):
-        print("FIB of node")
+        print("FIB of " + self.name)
         for item in self.FIB.items():
-            print(item)
+            print(item[0] + ' , ' + item[1].get_name())
+
+    def setFIB(self, fib):
+        self.FIB = fib
 
     def print_pit(self):
         print("PIT of node")
         for item in self.PIT.items():
             print(item)
 
+    def get_name(self):
+        return self.name
+
     def forward(self, pkt: Packet, src):
-        self.FIB[pkt].receive(pkt, src)
+        dest = self.FIB[pkt.getSourceName()]
+        print("Forward from: " + src.get_name() + " to " + dest.get_name())  
+        self.print_fib()
+        dest.receive(pkt, src)
         
     def get_gateway(self): 
         if (len(set(self.FIB.values())) == 1):
-            return set(self.FIB.values())
+            return list(self.FIB.values())[0]
         return False
 
     def receive(self, pkt: Packet, src):
-        pkt.hopcount+=1 
+        print("Receiving at " + self.name)
+        pkt.hop_count+=1 
         if pkt.is_interest:
             found = self.content_store.has(pkt)
             if found is not None:
@@ -43,3 +54,5 @@ class Node:
                     item.receive(pkt, src)
             else:
                 return pkt
+    
+

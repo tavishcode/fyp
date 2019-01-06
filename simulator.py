@@ -1,6 +1,8 @@
 import sys
 sys.path.insert(0, './src')
 from node import Node
+from graph import Graph
+from packet import Packet
 
 import random
 import math
@@ -18,51 +20,32 @@ class Simulator:
         self.consumers = []
         self.producers = []
         self.routers = []
+        
        
         num_routers = grid_rows * grid_cols
+
+        net_core = Graph(grid_rows, grid_cols)
 
         # assign consumers and producers with gateway routers
         for i in range(num_consumers):
             self.consumers.append(
-                Node({'' : random.randint(0, num_routers - 1)}, 0)
+                Node({'' : net_core.getRandomRouter()}, 0, "c" + str(i))
             )
         for i in range(num_producers):
             self.producers.append(
-                Node({'' : random.randint(0, num_routers - 1)}, 0)
+                Node({'' : net_core.getRandomRouter()}, self.NUM_CONTENT_TYPES / num_producers, "p" + str(i))
             )
-
-        # init grid topology matrix for routers
-        adj_mtx = []
-        for i in range(num_routers):
-            adj_mtx.append([])
-            for j in range(num_routers):
-                if i == j:
-                    adj_mtx[-1].append(1)
-                else:
-                    adj_mtx[-1].append(0)
-        
-        # connect routers in a grid
-        for i in range(num_routers):
-            row_ix = i // grid_cols % grid_rows
-            col_ix = i % grid_cols
-            for j in range(num_routers):
-                pair_row_ix = j // grid_cols % grid_rows
-                pair_col_ix = j % grid_cols
-                if abs(pair_row_ix - row_ix) + abs(pair_col_ix - col_ix) == 1:
-                    adj_mtx[i][j] = 1
-
-        # set fib for routers
-        for i in range(num_routers):
-            fib = {}
-            for p in self.producers:
-                if i != p.get_gateway():
-                    fib[p.get_name()] = self.get_best_hop(adj_mtx, i, p.get_gateway())
-            self.routers.append(
-                Node(fib, self.CACHE_SIZE)
-            )
+        # set FIBs in routers
+        net_core.setRoutesToProducers(self.producers)
     
-        #set content names
-        content_types = ['a' + str(x) for x in range(0, self.NUM_CONTENT_TYPES)]
+        # populate content
+        content_types = []
+        for i in range(self.NUM_CONTENT_TYPES):
+            next_producer = self.producers[i % num_producers]
+            content_name = next_producer.get_name() + "_c" + str(i)
+            next_producer.content_store.add_item(Packet(content_name, data=i))
+            content_types.append(content_name)
+    
         
         #generate probability distribution
         ZIPF_S = 1.2
@@ -71,26 +54,11 @@ class Simulator:
         #make content requests 
         for i in range(0, self.NUM_REQUESTS_PER_CONSUMER):
             for consumer in self.consumers:
-                consumer.request(choices(content_types, zipf_weights)[0])
+                print("NEW REQUEST")
+                pkt = Packet(choices(content_types, zipf_weights)[0])
+                consumer.get_gateway().receive( pkt, consumer)
 
-
-    def get_shortest_path(self, mtx, src, dest):
-        visited = set()
-        q = [[src]]
-        while q:
-            path = q.pop(0)
-            front = path[-1]
-            visited.add(front)
-            if front == dest:
-                return path
-            for neighbor, indicator in enumerate(mtx[front]):
-                if indicator == 1 and neighbor not in visited:
-                    new_path = list(path)
-                    new_path.append(neighbor)
-                    q.append(new_path)
-
-    def get_best_hop(self, mtx, src, dest):
-        return self.get_shortest_path(mtx, src, dest)[1]
+        
 
 if __name__ == "__main__":
     Simulator(2,2)
