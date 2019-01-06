@@ -1,18 +1,23 @@
+import sys
+sys.path.insert(0, './src')
+from node import Node
+
 import random
 import math
 from random import choices
 
+
+
 class Simulator:
-
-    NUM_REQUESTS_PER_CONSUMER = 10
-    NUM_CONTENT_TYPES = 10
-    CACHE_SIZE = 0.1 * NUM_CONTENT_TYPES
-
-    consumers = []
-    producers = []
-    routers = []
-
     def __init__(self, num_consumers, num_producers, grid_rows = 3, grid_cols = 3):
+
+        self.NUM_REQUESTS_PER_CONSUMER = 10
+        self.NUM_CONTENT_TYPES = 10
+        self.CACHE_SIZE = 0.1 * self.NUM_CONTENT_TYPES
+
+        self.consumers = []
+        self.producers = []
+        self.routers = []
        
         num_routers = grid_rows * grid_cols
 
@@ -49,27 +54,27 @@ class Simulator:
         # set fib for routers
         for i in range(num_routers):
             fib = {}
-            for p in producers:
+            for p in self.producers:
                 if i != p.get_gateway():
-                    fib[p.get_name()] = get_best_hop(adj_mtx, i, p.get_gateway())
+                    fib[p.get_name()] = self.get_best_hop(adj_mtx, i, p.get_gateway())
             self.routers.append(
-                Node(fib, CACHE_SIZE)
+                Node(fib, self.CACHE_SIZE)
             )
     
         #set content names
-        content_types = ['a' + str(x) for x in range(0, NUM_CONTENT_TYPES)]
+        content_types = ['a' + str(x) for x in range(0, self.NUM_CONTENT_TYPES)]
         
         #generate probability distribution
         ZIPF_S = 1.2
-        zipf_weights = [(1/k**ZIPF_S)/ (sum([1/n**ZIPF_S for n in NUM_CONTENT_TYPES])) for k in range(1,NUM_CONTENT_TYPES+1)]
+        zipf_weights = [(1/k**ZIPF_S)/ (sum([1/n**ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])) for k in range(1,self.NUM_CONTENT_TYPES+1)]
 
         #make content requests 
-        for i in range(0, NUM_REQUESTS_PER_CONSUMER):
-            for consumer in consumers:
+        for i in range(0, self.NUM_REQUESTS_PER_CONSUMER):
+            for consumer in self.consumers:
                 consumer.request(choices(content_types, zipf_weights)[0])
 
 
-    def get_shortest_path(mtx, src, dest):
+    def get_shortest_path(self, mtx, src, dest):
         visited = set()
         q = [[src]]
         while q:
@@ -84,5 +89,8 @@ class Simulator:
                     new_path.append(neighbor)
                     q.append(new_path)
 
-    def get_best_hop(mtx, src, dest):
-        return get_shortest_path(mtx, src, dest)[1]
+    def get_best_hop(self, mtx, src, dest):
+        return self.get_shortest_path(mtx, src, dest)[1]
+
+if __name__ == "__main__":
+    Simulator(2,2)
