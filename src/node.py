@@ -11,14 +11,14 @@ class Node:
         self.PIT = {} # a dict with "packet name" : src node
     
     def print_fib(self):
-        print "FIB of node"
+        print("FIB of node")
         for item in self.FIB.items():
-            print item
+            print(item)
 
     def print_pit(self):
-        print "PIT of node"
+        print("PIT of node")
         for item in self.PIT.items():
-            print item
+            print(item)
 
     def forward(self, pkt: Packet, src):
         self.FIB[pkt].receive(pkt, src)
