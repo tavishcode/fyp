@@ -1,7 +1,6 @@
 import sys
 sys.path.insert(0, './src')
-from node import Node
-
+from node import Router
 import random 
 
 class Graph:
@@ -15,7 +14,7 @@ class Graph:
         # init routers
         for i in range(0, self.num_routers):
             name = 'r' + str(i) 
-            self.routers.append(Node({}, self.CACHE_SIZE, name)) 
+            self.routers.append(Router({}, self.CACHE_SIZE, name)) 
 
         self.adj_mtx = []
 
@@ -39,32 +38,34 @@ class Graph:
 
     def getRouterByName(self, name):
         for r in self.routers:
-            if r.get_name() == name:
+            if r.name == name:
                 return r 
     
-    def getRandomRouter(self):
+    def get_random_router(self):
         return random.choice(self.routers)
     
     def getNeighbors(self):
         pass
+
     def getNumRouters(self):
         return self.num_routers
 
     def getRouterNames(self):
         return ['r' + str(i) for i in range(0, self.num_routers)]
-    # set fib for routers    
-    def setRoutesToProducers(self, producers):
+
+    # set fib for routers
+    def setRoutesToProducers(self, producers): 
         for r in self.routers:
             fib = {}
             for p in producers:
-                if r == p.get_gateway():
-                    fib[p.get_name()] = p
+                if r == p.gateway:
+                    fib[p.content] = p
                 else:
-                    fib[p.get_name()] = self.get_best_hop(self.adj_mtx, self.getPos(r), self.getPos(p.get_gateway()))
-            r.setFIB(fib)
+                    fib[p.content] = self.get_best_hop(self.adj_mtx, self.getPos(r), self.getPos(p.gateway))
+            r.FIB = fib
 
     def getPos(self, router):
-        return int(router.get_name().split('r')[1])
+        return int(router.name.split('r')[1])
 
     def getNthRouter(self, n):
         pass
@@ -91,6 +92,3 @@ class Graph:
         interm = self.get_shortest_path(mtx, src, dest)[1]
         result = self.routers[interm]
         return result
-
-if __name__ == "__main__":
-    Graph(5,5)
