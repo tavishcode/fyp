@@ -29,7 +29,7 @@ class Simulator:
 
     def __init__(self, num_consumers, num_producers, grid_rows = 3, grid_cols = 3):
 
-        self.NUM_REQUESTS_PER_CONSUMER = 1
+        self.NUM_REQUESTS_PER_CONSUMER = 2
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = 0.1 * self.NUM_CONTENT_TYPES
 
@@ -78,4 +78,4 @@ class Simulator:
 
 
 if __name__ == "__main__":
-    Simulator(num_consumers = 1, num_producers = 1, grid_rows = 2, grid_cols = 2)
+    Simulator(num_consumers = 1, num_producers = 1, grid_rows = 3, grid_cols = 3)

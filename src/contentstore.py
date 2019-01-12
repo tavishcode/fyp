@@ -21,7 +21,7 @@ class ContentStore:
 
     def get(self, pkt):
         for item in self.store:
-            if item.get_name() == pkt.get_name():
+            if item.name == pkt.name:
                 return item
         return None
 

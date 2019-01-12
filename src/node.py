@@ -1,17 +1,6 @@
 from contentstore import ContentStore
 from packet import Packet
 
-# Changes made:
-# Made Node, Router and Consumer into classes
-# Changed get methods to simple '.' operators (no private in python)
-# Simplified packet class
-# Created new packets everytime destination is reached, to refresh hop count
-# Total hop count for each request = data hops * 2
-# Set is useless if we still do linear search, so changed it back to list (sorry)
-# Removed forward method
-# Made PIT modifications
-# Added network topology visualization
-
 class Router:
     def __init__(self, fib, size, name):
         self.CACHESIZE = size
