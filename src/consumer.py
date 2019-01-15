@@ -18,4 +18,5 @@ class Consumer:
         self.gateway.q.append([time + 0.1, 'REC', pkt, self])
 
     def receive(self, time, pkt, src):
-        print(self.name + ' receives pkt ' + pkt.name + ' after ' + str(pkt.hop_count*2) + ' hops')
+        pkt.hop_count += 1
+        print(self.name + ' receives pkt ' + pkt.name + ' after ' + str(pkt.hop_count) + ' hops')

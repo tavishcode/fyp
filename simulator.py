@@ -35,7 +35,7 @@ class Simulator:
         self.ZIPF_S = 1.2
         self.REQUEST_RATE = 1
         self.NUM_CONTENT_TYPES = num_producers
-        self.CACHE_SIZE = int(0.1 * self.NUM_CONTENT_TYPES)
+        self.CACHE_SIZE = 1 #int(0.1 * self.NUM_CONTENT_TYPES)
 
         self.consumers = []
         self.producers = []
@@ -91,8 +91,8 @@ class Simulator:
                 self.set_next_content_requests()
                 num_request_wave += 1
             actor = self.get_next_actor()
-        # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
+        visualize(self.net_core.adj_mtx, self.consumers, self.producers)
 
 if __name__ == "__main__":
-    sim = Simulator(num_consumers = 2, num_producers = 1, num_requests_per_consumer = 1, grid_rows = 1, grid_cols = 1)
+    sim = Simulator(num_consumers = 2, num_producers = 1, num_requests_per_consumer = 1, grid_rows = 1, grid_cols = 2)
     sim.run()
