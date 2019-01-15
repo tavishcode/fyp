@@ -5,6 +5,7 @@ from graph import Graph
 from packet import Packet
 import random
 import math
+import numpy as np
 
 def visualize(adj_mtx, consumers, producers):
     import matplotlib.pyplot as plt
@@ -56,7 +57,6 @@ class Simulator:
                 Producer("p" + str(i), r, "content" + str(i))
             )
 
-
         # set FIBs in routers
         net_core.setRoutesToProducers(self.producers)
 
@@ -67,15 +67,34 @@ class Simulator:
         ZIPF_S = 1.2
         zipf_weights = [(1/k**ZIPF_S)/ (sum([1/n**ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])) for k in range(1,self.NUM_CONTENT_TYPES+1)]
 
-        # make content requests
-        for i in range(0, self.NUM_REQUESTS_PER_CONSUMER):
-            for consumer in self.consumers:
-                print("NEW REQUEST")
-                pkt = Packet(random.choices(content_types, zipf_weights)[0])
-                consumer.request(pkt)
+        # generate time-packet pairs using exponentially distributed time interval (poisson process) for each consumer
+        request_rate = 1
+        for consumer in self.consumers:
+            for r in range(self.NUM_REQUESTS_PER_CONSUMER):
+                start_time = 0
+                if len(consumer.q) > 0:
+                    start_time = consumer.q[-1][0]
+                # append (time, packet) pair into request queue
+                consumer.q.append([start_time + np.random.exponential(1/request_rate), Packet(random.choices(content_types, zipf_weights)[0])])
+
+        num_requests = len(self.consumers) * self.NUM_REQUESTS_PER_CONSUMER
+        for r in range(num_requests): 
+            min_ix = 0
+            min_time = -1
+            for c in range(len(self.consumers)):
+                if len(self.consumers[c].q) > 0  and (self.consumers[c].q[0][0] < min_time or min_time == -1):
+                    min_ix = c
+                    min_time = self.consumers[c].q[0][0]
+            pkt = self.consumers[min_ix].q.pop(0)[1]
+            self.consumers[min_ix].request(pkt)
+
+        # for i in range(0, self.NUM_REQUESTS_PER_CONSUMER):
+        #     for consumer in self.consumers:
+        #         print("NEW REQUEST")
+        #         pkt = Packet(random.choices(content_types, zipf_weights)[0])
+        #         consumer.request(pkt)
         
         visualize(net_core.adj_mtx, self.consumers, self.producers)
 
-
 if __name__ == "__main__":
-    Simulator(num_consumers = 1, num_producers = 1, grid_rows = 3, grid_cols = 3)
+    Simulator(num_consumers = 2, num_producers = 1, grid_rows = 2, grid_cols = 2)

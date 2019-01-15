@@ -41,6 +41,7 @@ class Consumer:
     def __init__(self, name, gateway):
         self.name = name
         self.gateway = gateway
+        self.q = []
 
     def request(self, pkt):
         print(self.name + ' requests ' + pkt.name)
