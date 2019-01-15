@@ -1,20 +1,21 @@
 from packet import Packet
 
 class ContentStore:
-    def __init__(self, space):
-        self.SIZE = space
+    def __init__(self, size):
+        self.size = size
         self.store = []
 
     def available_space(self):
-        available = self.SIZE - len(self.store)
-        return available, self.SIZE
+        available = self.size - len(self.store)
+        return available, self.size
 
     def add_item(self, item):
-        if(len(self.store) < self.SIZE):
-            self.store.append(item)
-        else:
-            self.store.pop() # TODO: Fancy way to discard a packet
-            self.store.append(item) 
+        if self.size:
+            if(len(self.store) < self.size):
+                self.store.append(item)
+            else:
+                self.store.pop(0) # TODO: Fancy way to discard a packet
+                self.store.append(item) 
 
     def empty_store(self):
         self.store = []

@@ -1,11 +1,10 @@
 import sys
 sys.path.insert(0, './src')
-from node import Router
+from router import Router
 import random 
 
 class Graph:
-    def __init__(self, grid_rows, grid_cols):
-        self.CACHE_SIZE = 2
+    def __init__(self, cache_size, grid_rows, grid_cols):
 
         # init grid topology matrix for routers
         self.num_routers = grid_rows * grid_cols
@@ -14,7 +13,7 @@ class Graph:
         # init routers
         for i in range(0, self.num_routers):
             name = 'r' + str(i) 
-            self.routers.append(Router({}, self.CACHE_SIZE, name)) 
+            self.routers.append(Router(cache_size, name)) 
 
         self.adj_mtx = []
 

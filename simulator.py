@@ -1,6 +1,8 @@
 import sys
 sys.path.insert(0, './src')
-from node import Router, Consumer, Producer
+from router import Router
+from consumer import Consumer
+from producer import Producer
 from graph import Graph
 from packet import Packet
 import random
@@ -28,73 +30,69 @@ def visualize(adj_mtx, consumers, producers):
 
 class Simulator:
 
-    def __init__(self, num_consumers, num_producers, grid_rows = 3, grid_cols = 3):
-
-        self.NUM_REQUESTS_PER_CONSUMER = 2
+    def __init__(self, num_consumers, num_producers, num_requests_per_consumer, grid_rows, grid_cols):
+        self.NUM_REQUESTS_PER_CONSUMER = num_requests_per_consumer
+        self.ZIPF_S = 1.2
+        self.REQUEST_RATE = 1
         self.NUM_CONTENT_TYPES = num_producers
-        self.CACHE_SIZE = 0.1 * self.NUM_CONTENT_TYPES
+        self.CACHE_SIZE = int(0.1 * self.NUM_CONTENT_TYPES)
 
         self.consumers = []
         self.producers = []
-        self.routers = []        
        
         num_routers = grid_rows * grid_cols
 
-        net_core = Graph(grid_rows, grid_cols)
+        self.net_core = Graph(self.CACHE_SIZE, grid_rows, grid_cols)
 
         # assign consumers and producers with gateway routers
         for i in range(num_consumers):
-            r = net_core.get_random_router()
-            print(r.name)
+            r = self.net_core.get_random_router()
             self.consumers.append(
                 Consumer("c" + str(i), r)
             )
 
         for i in range(num_producers):
-            r = net_core.get_random_router()
-            print(r.name)
+            r = self.net_core.get_random_router()
             self.producers.append(
                 Producer("p" + str(i), r, "content" + str(i))
             )
 
         # set FIBs in routers
-        net_core.setRoutesToProducers(self.producers)
+        self.net_core.setRoutesToProducers(self.producers)
 
         # populate content
-        content_types = ["content" + str(i) for i in range(num_producers)]
+        self.content_types = ["content" + str(i) for i in range(num_producers)]
         
         #generate probability distribution
-        ZIPF_S = 1.2
-        zipf_weights = [(1/k**ZIPF_S)/ (sum([1/n**ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])) for k in range(1,self.NUM_CONTENT_TYPES+1)]
+        self.zipf_weights = [(1/k**self.ZIPF_S)/ (sum([1/n**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])) for k in range(1,self.NUM_CONTENT_TYPES+1)]
 
-        # generate time-packet pairs using exponentially distributed time interval (poisson process) for each consumer
-        request_rate = 1
+    def get_next_actor(self):
+        arr = self.consumers + self.producers + self.net_core.routers
+        min_time = None
+        actor = None
+        for i in range(len(arr)):
+            if len(arr[i].q) > 0 and (min_time == None or arr[i].q[0][0] < min_time):
+                min_time = arr[i].q[0][0]
+                actor = arr[i]
+        return actor
+
+    def set_next_content_requests(self):
         for consumer in self.consumers:
-            for r in range(self.NUM_REQUESTS_PER_CONSUMER):
-                start_time = 0
-                if len(consumer.q) > 0:
-                    start_time = consumer.q[-1][0]
-                # append (time, packet) pair into request queue
-                consumer.q.append([start_time + np.random.exponential(1/request_rate), Packet(random.choices(content_types, zipf_weights)[0])])
-
-        num_requests = len(self.consumers) * self.NUM_REQUESTS_PER_CONSUMER
-        for r in range(num_requests): 
-            min_ix = 0
-            min_time = -1
-            for c in range(len(self.consumers)):
-                if len(self.consumers[c].q) > 0  and (self.consumers[c].q[0][0] < min_time or min_time == -1):
-                    min_ix = c
-                    min_time = self.consumers[c].q[0][0]
-            pkt = self.consumers[min_ix].q.pop(0)[1]
-            self.consumers[min_ix].request(pkt)
-
-        # for i in range(0, self.NUM_REQUESTS_PER_CONSUMER):
-        #     for consumer in self.consumers:
-        #         print("NEW REQUEST")
-        #         pkt = Packet(random.choices(content_types, zipf_weights)[0])
-        #         consumer.request(pkt)
-        
-        visualize(net_core.adj_mtx, self.consumers, self.producers)
+            # append (time, packet) pair into request queue
+            consumer.q.append([consumer.clock + np.random.exponential(1/self.REQUEST_RATE), 'REQ', Packet(random.choices(self.content_types, self.zipf_weights)[0])])
+    
+    def run(self):
+        self.set_next_content_requests()
+        num_request_wave = 1
+        actor = self.get_next_actor()
+        while actor != None:
+            actor.execute()
+            if num_request_wave < self.NUM_REQUESTS_PER_CONSUMER:
+                self.set_next_content_requests()
+                num_request_wave += 1
+            actor = self.get_next_actor()
+        # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
 
 if __name__ == "__main__":
-    Simulator(num_consumers = 2, num_producers = 1, grid_rows = 2, grid_cols = 2)
+    sim = Simulator(num_consumers = 2, num_producers = 1, num_requests_per_consumer = 1, grid_rows = 1, grid_cols = 1)
+    sim.run()
