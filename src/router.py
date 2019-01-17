@@ -1,11 +1,11 @@
 import sys
 sys.path.insert(0, './src')
-from contentstore import ContentStore
+from contentstore import FifoContentStore, LruContentStore, LfuContentStore
 from packet import Packet
 
 class Router:
     def __init__(self, cache_size, name):
-        self.content_store = ContentStore(cache_size)
+        self.contentstore = FifoContentStore(cache_size)
         self.FIB = {} # a dict with "node name" : node
         self.PIT = {} # a dict with "packet name" : [[node, hop_count], ...]
         self.name = name
@@ -30,7 +30,7 @@ class Router:
         pkt.hop_count += 1
         if pkt.is_interest:
             print(self.name + ' receives request for ' + pkt.name)
-            found = self.content_store.get(pkt)
+            found = self.contentstore.get(pkt)
             if found != None:
                 print(self.name + ' found ' + pkt.name + ' in cache')
                 new_data_pkt = Packet(pkt.name, is_interest=False, hop_count=pkt.hop_count)
@@ -43,7 +43,7 @@ class Router:
                     self.FIB[pkt.name].q.append([time + 0.1, 'REC', pkt, self])
         else:
             print(self.name + ' receives data packet for ' + pkt.name)
-            self.content_store.add_item(pkt)
+            self.contentstore.add(pkt)
             for ix, val in enumerate(self.PIT[pkt.name]):
                 node, hop_count = val
                 if ix == 0:
