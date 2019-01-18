@@ -16,6 +16,7 @@ class Consumer:
         print(self.name + ' requests ' + pkt.name)
         self.clock = time
         self.gateway.q.append([time + 0.1, 'REC', pkt, self])
+        self.gateway.q.sort(key=lambda x: x[0])
 
     def receive(self, time, pkt, src):
         pkt.hop_count += 1

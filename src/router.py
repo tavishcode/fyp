@@ -35,12 +35,14 @@ class Router:
                 print(self.name + ' found ' + pkt.name + ' in cache')
                 new_data_pkt = Packet(pkt.name, is_interest=False, hop_count=pkt.hop_count)
                 src.q.append([time + 0.1, 'REC', new_data_pkt, self])
+                src.q.sort(key=lambda x: x[0])
             else:
                 if pkt.name in self.PIT and len(self.PIT[pkt.name]) > 0:
                     self.PIT[pkt.name].append([src, pkt.hop_count])
                 else:
                     self.PIT[pkt.name] = [[src, pkt.hop_count]]
                     self.FIB[pkt.name].q.append([time + 0.1, 'REC', pkt, self])
+                    self.FIB[pkt.name].q.sort(key=lambda x: x[0])
         else:
             print(self.name + ' receives data packet for ' + pkt.name)
             self.contentstore.add(pkt)
@@ -48,6 +50,8 @@ class Router:
                 node, hop_count = val
                 if ix == 0:
                     node.q.append([time + 0.1, 'REC', pkt, self])
+                    node.q.sort(key=lambda x: x[0])
                 else:
                     node.q.append([time + 0.1, 'REC', Packet(pkt.name, is_interest=False, hop_count=hop_count), self])
+                    node.q.sort(key=lambda x: x[0])
             self.PIT[pkt.name] = []

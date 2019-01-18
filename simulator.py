@@ -80,6 +80,7 @@ class Simulator:
         for consumer in self.consumers:
             # append (time, packet) pair into request queue
             consumer.q.append([consumer.clock + np.random.exponential(1/self.REQUEST_RATE), 'REQ', Packet(random.choices(self.content_types, self.zipf_weights)[0])])
+            consumer.q.sort(key=lambda x: x[0])
     
     def run(self):
         self.set_next_content_requests()

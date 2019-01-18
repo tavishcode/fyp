@@ -19,3 +19,4 @@ class Producer:
         pkt.hop_count += 1
         new_data_pkt = Packet(pkt.name, is_interest=False, hop_count=pkt.hop_count)
         src.q.append([time + 0.1, 'REC', new_data_pkt, self])
+        src.q.sort(key=lambda x: x[0])
