@@ -39,6 +39,7 @@ def visualize(adj_mtx, consumers, producers):
         ZIPF_S: Parameter for Zipf Distribution
         NUM_CONTENT_TYPES: num of unique pkt names in network
         CACHE_SIZE: size of router caches
+        TIME_STEP: length of timestep interval
         consumers: list of all consumer nodes
         producers: list of all producer nodes
         net_core: Container for interfacing with router nodes
@@ -53,7 +54,10 @@ class Simulator:
         self.REQUEST_RATE = 1
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = 1 #int(0.1 * self.NUM_CONTENT_TYPES)
-
+        self.TIMESTEP = 10
+        
+        self.prev_time = 0
+        self.curr_time = 0
         self.consumers = []
         self.producers = []
        
@@ -83,9 +87,6 @@ class Simulator:
         #generate probability distribution
         self.zipf_weights = [(1/k**self.ZIPF_S)/ (sum([1/n**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])) for k in range(1,self.NUM_CONTENT_TYPES+1)]
 
-
-
-
     def get_next_actor(self):
         """Returns next actor (node) to execute event for (event with min value for time)"""
         arr = self.consumers + self.producers + self.net_core.routers
@@ -95,6 +96,7 @@ class Simulator:
             if len(arr[i].q) > 0 and (min_time == None or arr[i].q[0]['time'] < min_time):
                 min_time = arr[i].q[0]['time']
                 actor = arr[i]
+        self.curr_time = min_time
         return actor
 
     def set_next_content_requests(self):
@@ -114,6 +116,11 @@ class Simulator:
         num_request_wave = 1
         actor = self.get_next_actor()
         while actor != None:
+            if self.curr_time == 0 and self.prev_time == 0:
+                print('first use of algorithm (random params)')
+            elif self.curr_time - self.prev_time > self.TIMESTEP:
+                print('train algorithm')
+                self.prev_time = self.curr_time
             actor.execute()
             if num_request_wave < self.NUM_REQUESTS_PER_CONSUMER:
                 self.set_next_content_requests()
