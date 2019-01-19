@@ -1,5 +1,5 @@
 from packet import Packet
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 """ Abstract Class for defining Cache Policies.
 
@@ -19,6 +19,9 @@ class ContentStore:
     def get_helper(self, item_name):
         """Returns item with item_name if it is in store, else returns None"""
         raise NotImplementedError('Base Class ContentStore does not implement a cache')
+
+    def update_state(self):
+        pass
 
     def get(self, item_name):
         """Wrapper function for get_helper which includes hit/miss statistic updates"""
@@ -71,7 +74,7 @@ class LruContentStore(ContentStore):
 class LfuContentStore(ContentStore):
     def __init__(self, size):
         super().__init__(size)
-        self.store = {} # ['name', [item, freq]]
+        self.store = {} # {'name', [item, freq]}
     
     def add(self, item):
         if self.size:
@@ -91,6 +94,22 @@ class LfuContentStore(ContentStore):
             return cached_item
         except:
             return None
+
+"""DLCPP Cache Policy"""
+class DlcppContentStore(ContentStore):
+    def __init__(self, size):
+        super().__init__(size)
+        self.req_hist = defaultdict()
+    
+    def get_helper(self, item):
+        try:
+            self.req_hist[item.name] += 1
+        except:
+            pass
+    
+    def update_state(self):
+        self.req_hist = defaultdict()
+
 
         
 
