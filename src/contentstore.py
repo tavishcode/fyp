@@ -1,5 +1,5 @@
 from packet import Packet
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 """ Abstract Class for defining Cache Policies.
 
@@ -9,15 +9,28 @@ from collections import OrderedDict
 class ContentStore:
     def __init__(self, size):
         self.size = size
+        self.hits = 0
+        self.misses = 0
     
-    def add(self, item):
+    def add(self, item):        
         """Decides whether to add item to store and what to evict if store is full"""
         raise NotImplementedError('Base Class ContentStore does not implement a cache')
 
-    def get(self, item_name):
+    def get_helper(self, item_name):
         """Returns item with item_name if it is in store, else returns None"""
         raise NotImplementedError('Base Class ContentStore does not implement a cache')
-        
+
+    def update_state(self):
+        pass
+
+    def get(self, item_name):
+        """Wrapper function for get_helper which includes hit/miss statistic updates"""
+        item = self.get_helper(item_name)
+        if item != None:
+            self.hits += 1
+        else:
+            self.misses += 1
+        return item
 
 """First in First Out Cache Policy"""
 class FifoContentStore(ContentStore):
@@ -31,7 +44,7 @@ class FifoContentStore(ContentStore):
                 self.store.popitem(last=False)
             self.store[item.name] = item
 
-    def get(self, item):
+    def get_helper(self, item):
         try:
             return self.store[item.name]
         except:
@@ -49,7 +62,7 @@ class LruContentStore(ContentStore):
                 self.store.popitem(last=False)
             self.store[item.name] = item
 
-    def get(self, item):
+    def get_helper(self, item):
         try:
             cached_item = self.store.pop(item.name)
             self.store[item.name] = cached_item
@@ -61,7 +74,7 @@ class LruContentStore(ContentStore):
 class LfuContentStore(ContentStore):
     def __init__(self, size):
         super().__init__(size)
-        self.store = {} # ['name', [item, freq]]
+        self.store = {} # {'name', [item, freq]}
     
     def add(self, item):
         if self.size:
@@ -74,13 +87,29 @@ class LfuContentStore(ContentStore):
                 self.store.pop(min_key)
             self.store[item.name] = [item, 1]
 
-    def get(self, item):
+    def get_helper(self, item):
         try:
             cached_item = self.store[item.name][0]
             self.store[item.name][1] += 1
             return cached_item
         except:
             return None
+
+"""DLCPP Cache Policy"""
+class DlcppContentStore(ContentStore):
+    def __init__(self, size):
+        super().__init__(size)
+        self.req_hist = defaultdict()
+    
+    def get_helper(self, item):
+        try:
+            self.req_hist[item.name] += 1
+        except:
+            pass
+    
+    def update_state(self):
+        self.req_hist = defaultdict()
+
 
         
 

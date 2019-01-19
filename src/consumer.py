@@ -4,7 +4,8 @@
         name: name to address node
         gateway: name of router through which all traffic is routed
         clock: time of last request made by consumer
-        q: A queue of events receieved by a node
+        q: a queue of events receieved by a node
+        req_hist: request history for one timestep
 """
 class Consumer:
     def __init__(self, name, gateway):
@@ -17,7 +18,7 @@ class Consumer:
         """Call next event in consumer q"""
         event = self.q.pop(0)
         if event['type'] == 'REQ':
-            self.request(event['time'], event['src'])
+            self.request(event['time'], event['pkt'])
         elif event['type'] == 'REC':
             self.receive(event['time'], event['pkt'], event['src'])
 
