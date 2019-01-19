@@ -8,7 +8,7 @@ from packet import Packet
 import random
 import math
 import numpy as np
-
+from matplotlib import pyplot as plt
 
 """Creates visualization for simulation"""
 def visualize(adj_mtx, consumers, producers):
@@ -48,14 +48,18 @@ def visualize(adj_mtx, consumers, producers):
 """
 class Simulator:
 
-    def __init__(self, num_consumers, num_producers, num_requests_per_consumer, grid_rows, grid_cols):
+    def __init__(self, num_consumers, num_producers, num_requests_per_consumer, grid_rows, grid_cols, cache_ratio, policy, rand_seed = 1):
         self.NUM_REQUESTS_PER_CONSUMER = num_requests_per_consumer
         self.ZIPF_S = 1.2
         self.REQUEST_RATE = 1
         self.NUM_CONTENT_TYPES = num_producers
-        self.CACHE_SIZE = 1 #int(0.1 * self.NUM_CONTENT_TYPES)
+        self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)
         self.TIMESTEP = 10
+        self.RAND_SEED = rand_seed
         
+        random.seed(self.RAND_SEED)
+        np.random.seed(self.RAND_SEED)
+
         self.prev_time = 0
         self.curr_time = 0
         self.consumers = []
@@ -63,7 +67,7 @@ class Simulator:
        
         num_routers = grid_rows * grid_cols
 
-        self.net_core = Graph(self.CACHE_SIZE, grid_rows, grid_cols)
+        self.net_core = Graph(self.CACHE_SIZE, grid_rows, grid_cols, policy)
 
         # assign consumers and producers with gateway routers
         for i in range(num_consumers):
@@ -117,7 +121,8 @@ class Simulator:
         actor = self.get_next_actor()
         while actor != None:
             if self.curr_time == 0 and self.prev_time == 0:
-                print('first use of algorithm (random params)')
+               # first run of algorithm (no prior training)
+               pass
             elif self.curr_time - self.prev_time > self.TIMESTEP:
                 # train algorithm
                 self.prev_time = self.curr_time
@@ -129,8 +134,58 @@ class Simulator:
                 self.set_next_content_requests()
                 num_request_wave += 1
             actor = self.get_next_actor()
-        visualize(self.net_core.adj_mtx, self.consumers, self.producers)
+        # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
 
 if __name__ == "__main__":
-    sim = Simulator(num_consumers = 2, num_producers = 1, num_requests_per_consumer = 1, grid_rows = 1, grid_cols = 2)
-    sim.run()
+    RAND_SEED = 1
+    
+    # sim = Simulator(
+    #     num_consumers=2, 
+    #     num_producers=10, 
+    #     num_requests_per_consumer=10, 
+    #     grid_rows=2, 
+    #     grid_cols=2, 
+    #     cache_ratio=0.3,
+    #     policy='lfu', 
+    #     rand_seed=RAND_SEED
+    # )
+    # sim.run()
+
+    # plot distribution of requests
+    #
+    # req_freqs = [0 for c in range(sim.NUM_CONTENT_TYPES)]
+    # for consumer in sim.consumers:
+    #     for i in range(sim.NUM_CONTENT_TYPES):
+    #         req_freqs[i] += consumer.gateway.contentstore.req_hist['content'+str(i)]
+    # plt.bar([i for i in range(sim.NUM_CONTENT_TYPES)], req_freqs)
+    # plt.show()
+
+    # traditional cache experiment
+    cache_ratios = [0.1, 0.2, 0.3, 0.4, 0.5]
+    policies = ['fifo', 'lru', 'lfu']
+    for policy in policies:
+        hit_ratios = []
+        for cache_ratio in cache_ratios:
+            sim = Simulator(
+                    num_consumers=50, 
+                    num_producers=10, 
+                    num_requests_per_consumer=100, 
+                    grid_rows=5, 
+                    grid_cols=5, 
+                    cache_ratio=cache_ratio,
+                    policy=policy, 
+                    rand_seed=RAND_SEED
+                )
+            sim.run()
+            hits = 0
+            reqs = 0
+            for router in sim.net_core.routers:
+                reqs += router.contentstore.hits + router.contentstore.misses
+                hits += router.contentstore.hits
+            hit_ratios.append(hits/reqs)
+        plt.plot(hit_ratios)
+    plt.legend(policies)
+    plt.show()
+
+
+

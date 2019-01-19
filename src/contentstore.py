@@ -46,6 +46,7 @@ class FifoContentStore(ContentStore):
 
     def get_helper(self, item):
         try:
+            self.req_hist[item.name] += 1
             return self.store[item.name]
         except:
             return None
@@ -83,6 +84,7 @@ class LfuContentStore(ContentStore):
                 min_freq = None
                 for key in self.store.keys():
                     if min_freq == None or self.store[key][1] < min_freq:
+                        min_freq = self.store[key][1]
                         min_key = key
                 self.store.pop(min_key)
             self.store[item.name] = [item, 1]
@@ -99,16 +101,19 @@ class LfuContentStore(ContentStore):
 class DlcppContentStore(ContentStore):
     def __init__(self, size):
         super().__init__(size)
-        self.req_hist = defaultdict()
+        # record req history for last timestep and current timestep
+        self.prev_reqs = defaultdict(int)
+        self.curr_reqs = defaultdict(int)
     
     def get_helper(self, item):
         try:
-            self.req_hist[item.name] += 1
+            self.curr_reqs[item.name] += 1
         except:
             pass
     
     def update_state(self):
-        self.req_hist = defaultdict()
+        self.prev_reqs = self.curr_reqs
+        self.curr_reqs = defaultdict(int)
 
 
         
