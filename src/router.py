@@ -13,8 +13,13 @@ from packet import Packet
         q: A queue of events receieved by a node
 """
 class Router:
-    def __init__(self, cache_size, name):
-        self.contentstore = FifoContentStore(cache_size)
+    def __init__(self, cache_size, name, policy):
+        if policy == 'fifo':
+            self.contentstore = FifoContentStore(cache_size)
+        elif policy == 'lru':
+            self.contentstore = LruContentStore(cache_size)
+        elif policy == 'lfu':
+            self.contentstore = LfuContentStore(cache_size)
         self.FIB = {} 
         self.PIT = {} 
         self.name = name

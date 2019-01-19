@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, './src')
 from packet import Packet
 
-""" A CCN Producer Node Node
+""" A CCN Producer Node
 
     Attributes: 
         name: name to address node
