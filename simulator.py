@@ -9,6 +9,8 @@ import random
 import math
 import numpy as np
 
+
+"""Creates visualization for simulation"""
 def visualize(adj_mtx, consumers, producers):
     import matplotlib.pyplot as plt
     import networkx as nx
@@ -28,6 +30,21 @@ def visualize(adj_mtx, consumers, producers):
     nx.draw(gr, node_size = 500, with_labels = True)
     plt.show()
 
+
+""" Creates CCN Simulation for a given network scenaario
+
+    Attributes:
+        NUM_REQUESTS_PER_CONSUMER: num pkt requests each consumer will make
+        REQUEST_RATE:
+        ZIPF_S: Parameter for Zipf Distribution
+        NUM_CONTENT_TYPES: num of unique pkt names in network
+        CACHE_SIZE: size of router caches
+        consumers: list of all consumer nodes
+        producers: list of all producer nodes
+        net_core: Container for interfacing with router nodes
+        zipf_weights: list of zipf distribution based probabilities for content_types
+
+"""
 class Simulator:
 
     def __init__(self, num_consumers, num_producers, num_requests_per_consumer, grid_rows, grid_cols):
@@ -58,7 +75,7 @@ class Simulator:
             )
 
         # set FIBs in routers
-        self.net_core.setRoutesToProducers(self.producers)
+        self.net_core.set_routes_to_producers(self.producers)
 
         # populate content
         self.content_types = ["content" + str(i) for i in range(num_producers)]
@@ -66,23 +83,34 @@ class Simulator:
         #generate probability distribution
         self.zipf_weights = [(1/k**self.ZIPF_S)/ (sum([1/n**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])) for k in range(1,self.NUM_CONTENT_TYPES+1)]
 
+
+
+
     def get_next_actor(self):
+        """Returns next actor (node) to execute event for (event with min value for time)"""
         arr = self.consumers + self.producers + self.net_core.routers
         min_time = None
         actor = None
         for i in range(len(arr)):
-            if len(arr[i].q) > 0 and (min_time == None or arr[i].q[0][0] < min_time):
-                min_time = arr[i].q[0][0]
+            if len(arr[i].q) > 0 and (min_time == None or arr[i].q[0]['time'] < min_time):
+                min_time = arr[i].q[0]['time']
                 actor = arr[i]
         return actor
 
     def set_next_content_requests(self):
+        """Append (time, req, packet) pair into each consumerevent queue"""
         for consumer in self.consumers:
-            # append (time, packet) pair into request queue
-            consumer.q.append([consumer.clock + np.random.exponential(1/self.REQUEST_RATE), 'REQ', Packet(random.choices(self.content_types, self.zipf_weights)[0])])
+            consumer.q.append({
+                'time': consumer.clock + np.random.exponential(1/self.REQUEST_RATE),
+                'type': 'REQ',
+                'pkt': Packet(random.choices(self.content_types, self.zipf_weights)[0])
+              })
+
             consumer.q.sort(key=lambda x: x[0])
     
     def run(self):
+        """Executes events for nodes
+        Calls content request waves after each event for NUM_REQUESTS_PER_CONSUMER waves"""
         self.set_next_content_requests()
         num_request_wave = 1
         actor = self.get_next_actor()
