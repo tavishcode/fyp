@@ -105,8 +105,7 @@ class Simulator:
                 'type': 'REQ',
                 'pkt': Packet(random.choices(self.content_types, self.zipf_weights)[0])
               })
-
-            consumer.q.sort(key=lambda x: x[0])
+            consumer.q.sort(key=lambda x: x['time'])
     
     def run(self):
         """Executes events for nodes

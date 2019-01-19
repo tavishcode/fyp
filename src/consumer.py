@@ -17,7 +17,7 @@ class Consumer:
         """Call next event in consumer q"""
         event = self.q.pop(0)
         if event['type'] == 'REQ':
-            self.request(event['time'], event['src'])
+            self.request(event['time'], event['pkt'])
         elif event['type'] == 'REC':
             self.receive(event['time'], event['pkt'], event['src'])
 
