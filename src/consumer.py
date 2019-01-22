@@ -5,12 +5,12 @@
         gateway: name of router through which all traffic is routed
         clock: time of last request made by consumer
         q: a queue of events receieved by a node
+        
 """
 class Consumer:
     def __init__(self, name, gateway):
         self.name = name
         self.gateway = gateway
-        self.clock = 0
         self.q = []
 
     def execute(self):
@@ -24,7 +24,6 @@ class Consumer:
     def request(self, time, pkt):
         """Add receieve event for an interest packet to gateway"""
         print(self.name + ' requests ' + pkt.name)
-        self.clock = time
         self.gateway.q.append({'time': time + 0.1, 'type': 'REC', 'pkt': pkt, 'src': self})
         self.gateway.q.sort(key=lambda x: x['time'])
 

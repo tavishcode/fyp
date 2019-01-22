@@ -62,12 +62,18 @@ class Simulator:
 
         self.prev_time = 0
         self.curr_time = 0
+        self.time_of_next_request_wave = 0
+        self.num_request_waves = 0
         self.consumers = []
         self.producers = []
        
         num_routers = grid_rows * grid_cols
 
         self.net_core = Graph(self.CACHE_SIZE, grid_rows, grid_cols, policy)
+
+        self.req_counts = []
+        for r in self.net_core.routers:
+            self.req_counts.append([])
 
         # assign consumers and producers with gateway routers
         for i in range(num_consumers):
@@ -94,32 +100,42 @@ class Simulator:
     def get_next_actor(self):
         """Returns next actor (node) to execute event for (event with min value for time)"""
         arr = self.consumers + self.producers + self.net_core.routers
-        min_time = None
+        min_time = self.time_of_next_request_wave
         actor = None
         for i in range(len(arr)):
             if len(arr[i].q) > 0 and (min_time == None or arr[i].q[0]['time'] < min_time):
                 min_time = arr[i].q[0]['time']
                 actor = arr[i]
+        if self.time_of_next_request_wave != None and min_time == self.time_of_next_request_wave: # next action is a wave of requests from consumers
+            self.set_next_content_requests(self.time_of_next_request_wave)
+            actor = self.consumers[0]
+        if min_time!= None:
+            assert(self.curr_time <= min_time)
         self.curr_time = min_time
         return actor
 
-    def set_next_content_requests(self):
+    def set_next_content_requests(self, time):
         """Append (time, req, packet) pair into each consumerevent queue"""
         for consumer in self.consumers:
             consumer.q.append({
-                'time': consumer.clock + np.random.exponential(1/self.REQUEST_RATE),
+                'time': time,
                 'type': 'REQ',
-                'pkt': Packet(random.choices(self.content_types, self.zipf_weights)[0])
+                'pkt': Packet(np.random.choice(self.content_types, 1, p=self.zipf_weights)[0])
               })
             consumer.q.sort(key=lambda x: x['time'])
-    
+        self.num_request_waves += 1
+        if self.num_request_waves < self.NUM_REQUESTS_PER_CONSUMER:
+            self.time_of_next_request_wave += np.random.exponential(1/self.REQUEST_RATE)
+        else:
+            self.time_of_next_request_wave = None
+
     def run(self):
         """Executes events for nodes
         Calls content request waves after each event for NUM_REQUESTS_PER_CONSUMER waves"""
-        self.set_next_content_requests()
-        num_request_wave = 1
+        self.set_next_content_requests(0)
         actor = self.get_next_actor()
         while actor != None:
+            print(self.curr_time)
             if self.curr_time == 0 and self.prev_time == 0:
                # first run of algorithm (no prior training)
                pass
@@ -127,65 +143,71 @@ class Simulator:
                 # train algorithm
                 self.prev_time = self.curr_time
                 # update router features after a timestep
-                for router in self.net_core.routers:
-                    router.contentstore.update_state()
+                for ix, router in enumerate(self.net_core.routers):
+                    req_count = router.contentstore.update_state()
+                    self.req_counts[ix].append(req_count)
             actor.execute()
-            if num_request_wave < self.NUM_REQUESTS_PER_CONSUMER:
-                self.set_next_content_requests()
-                num_request_wave += 1
             actor = self.get_next_actor()
+
         # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
 
 if __name__ == "__main__":
     RAND_SEED = 1
     
-    # sim = Simulator(
-    #     num_consumers=2, 
-    #     num_producers=10, 
-    #     num_requests_per_consumer=10, 
-    #     grid_rows=2, 
-    #     grid_cols=2, 
-    #     cache_ratio=0.3,
-    #     policy='lfu', 
-    #     rand_seed=RAND_SEED
-    # )
-    # sim.run()
+    """ Simulation Sample Scenario """
 
-    # plot distribution of requests
-    #
-    # req_freqs = [0 for c in range(sim.NUM_CONTENT_TYPES)]
-    # for consumer in sim.consumers:
-    #     for i in range(sim.NUM_CONTENT_TYPES):
-    #         req_freqs[i] += consumer.gateway.contentstore.req_hist['content'+str(i)]
-    # plt.bar([i for i in range(sim.NUM_CONTENT_TYPES)], req_freqs)
-    # plt.show()
+    sim = Simulator(
+        num_consumers=5, 
+        num_producers=10, 
+        num_requests_per_consumer=100, 
+        grid_rows=2, 
+        grid_cols=2, 
+        cache_ratio=0.3,
+        policy='fifo', 
+        rand_seed=RAND_SEED
+    )
+    sim.run()
 
-    # traditional cache experiment
-    cache_ratios = [0.1, 0.2, 0.3, 0.4, 0.5]
-    policies = ['fifo', 'lru', 'lfu']
-    for policy in policies:
-        hit_ratios = []
-        for cache_ratio in cache_ratios:
-            sim = Simulator(
-                    num_consumers=50, 
-                    num_producers=10, 
-                    num_requests_per_consumer=100, 
-                    grid_rows=5, 
-                    grid_cols=5, 
-                    cache_ratio=cache_ratio,
-                    policy=policy, 
-                    rand_seed=RAND_SEED
-                )
-            sim.run()
-            hits = 0
-            reqs = 0
-            for router in sim.net_core.routers:
-                reqs += router.contentstore.hits + router.contentstore.misses
-                hits += router.contentstore.hits
-            hit_ratios.append(hits/reqs)
-        plt.plot(hit_ratios)
-    plt.legend(policies)
+    """Print requests per timestep"""
+
+    # print(sim.req_counts)
+
+    """Plot distribution of requests"""
+    
+    req_freqs = [0 for c in range(sim.NUM_CONTENT_TYPES)]
+    for consumer in sim.consumers:
+        for i in range(sim.NUM_CONTENT_TYPES):
+            req_freqs[i] += consumer.gateway.contentstore.req_hist['content'+str(i)]
+    plt.bar([i for i in range(sim.NUM_CONTENT_TYPES)], req_freqs)
     plt.show()
+
+    """ Traditional Cache Experiment"""
+    
+    # cache_ratios = [0.1, 0.2, 0.3, 0.4, 0.5]
+    # policies = ['fifo', 'lru', 'lfu']
+    # for policy in policies:
+    #     hit_ratios = []
+    #     for cache_ratio in cache_ratios:
+    #         sim = Simulator(
+    #                 num_consumers=50, 
+    #                 num_producers=10, 
+    #                 num_requests_per_consumer=100, 
+    #                 grid_rows=5, 
+    #                 grid_cols=5, 
+    #                 cache_ratio=cache_ratio,
+    #                 policy=policy, 
+    #                 rand_seed=RAND_SEED
+    #             )
+    #         sim.run()
+    #         hits = 0
+    #         reqs = 0
+    #         for router in sim.net_core.routers:
+    #             reqs += router.contentstore.hits + router.contentstore.misses
+    #             hits += router.contentstore.hits
+    #         hit_ratios.append(hits/reqs)
+    #     plt.plot(hit_ratios)
+    # plt.legend(policies)
+    # plt.show()
 
 
 
