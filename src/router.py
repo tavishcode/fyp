@@ -11,6 +11,7 @@ from packet import Packet
         FIB: Dict with "node name" : node
         PIT: Dict with "packet name" : [[node, hop_count], ...]
         q: A queue of events receieved by a node
+
 """
 class Router:
     def __init__(self, cache_size, name, policy):

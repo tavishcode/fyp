@@ -37,6 +37,12 @@ class FifoContentStore(ContentStore):
     def __init__(self, size):
         super().__init__(size)
         self.store = OrderedDict()
+        self.req_hist = defaultdict(int) # for testing purposes
+
+    def update_state(self): # for testing purposes
+        counts = len(self.req_hist)
+        self.req_hist = defaultdict(int)
+        return counts
 
     def add(self, item):
         if self.size:
@@ -115,6 +121,17 @@ class DlcppContentStore(ContentStore):
         self.prev_reqs = self.curr_reqs
         self.curr_reqs = defaultdict(int)
 
+"""DDPG Cache Policy - RL"""
+class DdpgContentStore(ContentStore):
+    def __init__(self, size):
+        super().__init__(size)
+        self.curr_reqs = defaultdict(int)
+    
+    def get_helper(self, item):
+        try:
+            self.curr_reqs[item.name] += 1
+        except:
+            pass
 
         
 
