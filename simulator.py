@@ -5,6 +5,7 @@ from consumer import Consumer
 from producer import Producer
 from graph import Graph
 from packet import Packet
+import test
 import random
 import math
 import numpy as np
@@ -129,7 +130,7 @@ class Simulator:
                 self.set_next_content_requests()
                 num_request_wave += 1
             actor = self.get_next_actor()
-        visualize(self.net_core.adj_mtx, self.consumers, self.producers)
+        # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
 
 if __name__ == "__main__":
     sim = Simulator(num_consumers = 2, num_producers = 1, num_requests_per_consumer = 1, grid_rows = 1, grid_cols = 2)

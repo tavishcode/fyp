@@ -100,6 +100,7 @@ class DlcppContentStore(ContentStore):
     def __init__(self, size):
         super().__init__(size)
         self.req_hist = defaultdict()
+        self.content_pop = defaultdict()
     
     def get_helper(self, item):
         try:
@@ -107,8 +108,9 @@ class DlcppContentStore(ContentStore):
         except:
             pass
     
-    def update_state(self):
-        self.req_hist = defaultdict()
+    def update_state(self): # Called at each time delta
+        self.correct_pop = self.req_hist # Capture previous time delta popularity
+        self.req_hist = defaultdict() # Initialize as empty
 
 
         
