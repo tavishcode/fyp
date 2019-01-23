@@ -5,7 +5,8 @@ from consumer import Consumer
 from producer import Producer
 from graph import Graph
 from packet import Packet
-import test
+from test import predict_popularity
+from test import baseline_model
 import random
 import math
 import numpy as np
@@ -55,12 +56,13 @@ class Simulator:
         self.REQUEST_RATE = 1
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = 1 #int(0.1 * self.NUM_CONTENT_TYPES)
-        self.TIMESTEP = 10
+        self.TIMESTEP = 0.5
         
         self.prev_time = 0
         self.curr_time = 0
         self.consumers = []
         self.producers = []
+        self.model = False
        
         num_routers = grid_rows * grid_cols
 
@@ -117,21 +119,26 @@ class Simulator:
         num_request_wave = 1
         actor = self.get_next_actor()
         while actor != None:
-            if self.curr_time == 0 and self.prev_time == 0:
+            print(self.curr_time)
+            if not self.model:
                 print('first use of algorithm (random params)')
+                self.model = baseline_model(self.NUM_CONTENT_TYPES)
             elif self.curr_time - self.prev_time > self.TIMESTEP:
+                print("#################################################################################")
                 # train algorithm
                 self.prev_time = self.curr_time
                 # update router features after a timestep
                 for router in self.net_core.routers:
-                    router.contentstore.update_state()
+                    predict_popularity(self.model,router.contentstore,self.curr_time)
+                    router.contentstore.update_state(self.content_types)
             actor.execute()
             if num_request_wave < self.NUM_REQUESTS_PER_CONSUMER:
                 self.set_next_content_requests()
                 num_request_wave += 1
             actor = self.get_next_actor()
         # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
+        self.model.summary()
 
 if __name__ == "__main__":
-    sim = Simulator(num_consumers = 2, num_producers = 1, num_requests_per_consumer = 1, grid_rows = 1, grid_cols = 2)
+    sim = Simulator(num_consumers = 20, num_producers = 10, num_requests_per_consumer = 1000, grid_rows = 2, grid_cols = 2)
     sim.run()

@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, './src')
-from contentstore import FifoContentStore, LruContentStore, LfuContentStore
+from contentstore import FifoContentStore, LruContentStore, LfuContentStore, DlcppContentStore
 from packet import Packet
 
 """ A CCN Router Node
@@ -14,7 +14,7 @@ from packet import Packet
 """
 class Router:
     def __init__(self, cache_size, name):
-        self.contentstore = FifoContentStore(cache_size)
+        self.contentstore = DlcppContentStore(cache_size)
         self.FIB = {} 
         self.PIT = {} 
         self.name = name

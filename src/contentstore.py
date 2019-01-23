@@ -100,17 +100,27 @@ class DlcppContentStore(ContentStore):
     def __init__(self, size):
         super().__init__(size)
         self.req_hist = defaultdict()
-        self.content_pop = defaultdict()
+        self.req_hist_prev = OrderedDict()
+        self.store = OrderedDict()
+
+    def add(self, item):
+        if self.size:
+            if(len(self.store) == self.size):
+                self.store.popitem(last=False)
+            self.store[item.name] = item
+            
     
     def get_helper(self, item):
         try:
             self.req_hist[item.name] += 1
-        except:
-            pass
+        except Exception as e:
+            print(e)
     
-    def update_state(self): # Called at each time delta
-        self.correct_pop = self.req_hist # Capture previous time delta popularity
-        self.req_hist = defaultdict() # Initialize as empty
+    def update_state(self,content_types): # Called at each time delta
+        self.req_hist_prev = self.req_hist # Capture previous time delta popularity
+        print(self.req_hist_prev)
+        self.req_hist = OrderedDict.fromkeys(content_types,0)
+       
 
 
         
