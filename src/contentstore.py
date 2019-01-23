@@ -142,13 +142,12 @@ class DdpgContentStore(ContentStore):
 
         # Bootstrap first updates
         self.bootstrap = LfuContentStore(size)
-        self.bootstrap_period = 1000000
+        self.bootstrap_period = 100000
 
         self.NUM_CONTENT_TYPES = num_content_types
         self.curr_reqs = defaultdict(int)
         self.ram = MemoryBuffer(1000000)
         self.trainer = ddpg_trainer(self.NUM_CONTENT_TYPES, self.NUM_CONTENT_TYPES, self.ram)
-        self.trainer.load_models(1)
         self.first_run = True
         self.state = []
         self.action = None
@@ -156,6 +155,7 @@ class DdpgContentStore(ContentStore):
         self.model_updates = 0
         self.temp_hits = 0
         self.temp_misses = 0
+        self.rewards = []
 
     def get_helper(self, item):
         try:
@@ -204,7 +204,8 @@ class DdpgContentStore(ContentStore):
         if temp_reqs and not self.first_run:
 
             reward = self.temp_hits/temp_reqs
-            # print('reward ' + str(reward))
+            self.rewards.append(reward)
+            print('reward ' + str(reward))
             new_state = []
             for c in range(self.NUM_CONTENT_TYPES):
                 new_state.append(0)

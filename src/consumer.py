@@ -12,6 +12,7 @@ class Consumer:
         self.name = name
         self.gateway = gateway
         self.q = []
+        self.time_of_next_request = 0
 
     def execute(self):
         """Call next event in consumer q"""

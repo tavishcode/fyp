@@ -44,12 +44,10 @@ def visualize(adj_mtx, consumers, producers):
         producers: list of all producer nodes
         net_core: Container for interfacing with router nodes
         zipf_weights: list of zipf distribution based probabilities for content_types
-
 """
 class Simulator:
 
-    def __init__(self, num_consumers, num_producers, num_requests_per_consumer, grid_rows, grid_cols, cache_ratio, policy, rand_seed = 1):
-        self.NUM_REQUESTS_PER_CONSUMER = num_requests_per_consumer
+    def __init__(self, num_consumers, num_producers, end_time, grid_rows, grid_cols, cache_ratio, policy, rand_seed = 1):
         self.ZIPF_S = 1.2
         self.REQUEST_RATE = 1 # 1 req/s
         self.NUM_CONTENT_TYPES = num_producers
@@ -61,10 +59,10 @@ class Simulator:
         random.seed(self.RAND_SEED)
         np.random.seed(self.RAND_SEED)
 
-        self.time_of_next_request_wave = 0
         self.prev_cache_update = 0
         self.prev_zipf_update = 0
         self.curr_time = 0 # continuously increasing time
+        self.end_time = end_time
         self.num_request_waves = 0
         self.consumers = []
         self.producers = []
@@ -102,44 +100,41 @@ class Simulator:
         print(self.content_types)
         print(self.zipf_weights)
 
+    
     def get_next_actor(self):
         """Returns next actor (node) to execute event for (event with min value for time)"""
         arr = self.consumers + self.producers + self.net_core.routers
-        min_time = self.time_of_next_request_wave
+        min_time = None
         actor = None
         for i in range(len(arr)):
             if len(arr[i].q) > 0 and (min_time == None or arr[i].q[0]['time'] < min_time):
                 min_time = arr[i].q[0]['time']
                 actor = arr[i]
-        if self.time_of_next_request_wave != None and min_time == self.time_of_next_request_wave: # next action is a wave of requests from consumers
-            self.set_next_content_requests(self.time_of_next_request_wave)
-            actor = self.consumers[0]
+        for consumer in self.consumers:
+            if actor.name == consumer.name:
+                self.set_next_content_request(consumer)
         if min_time!= None:
             assert(self.curr_time <= min_time)
         self.curr_time = min_time
         return actor
 
-    def set_next_content_requests(self, time):
-        """Append (time, req, packet) pair into each consumerevent queue"""
-        for consumer in self.consumers:
-            consumer.q.append({
-                'time': time,
-                'type': 'REQ',
-                'pkt': Packet(np.random.choice(self.content_types, 1, p=self.zipf_weights)[0])
-              })
-            consumer.q.sort(key=lambda x: x['time'])
-        self.num_request_waves += 1
-        if self.num_request_waves < self.NUM_REQUESTS_PER_CONSUMER:
-            self.time_of_next_request_wave += np.random.exponential(1/self.REQUEST_RATE)
-        else:
-            self.time_of_next_request_wave = None
+    def set_next_content_request(self, consumer):
+        """Append (time, req, packet) pair into consumer queue"""
+        consumer.q.append({
+            'time': consumer.time_of_next_request,
+            'type': 'REQ',
+            'pkt': Packet(np.random.choice(self.content_types, 1, p=self.zipf_weights)[0])
+            })
+        consumer.q.sort(key=lambda x: x['time'])
+        consumer.time_of_next_request += np.random.exponential(1/self.REQUEST_RATE)
 
     def run(self):
         """Executes events for nodes
         Calls content request waves after each event for NUM_REQUESTS_PER_CONSUMER waves"""
-        self.set_next_content_requests(0)
+        for consumer in self.consumers:
+            self.set_next_content_request(consumer)
         actor = self.get_next_actor()
-        while actor != None:
+        while self.curr_time < self.end_time:
             # print(self.curr_time)
             if self.curr_time == 0 and self.prev_cache_update == 0:
                # first run of algorithm (no prior training)
@@ -152,7 +147,6 @@ class Simulator:
             if self.curr_time - self.prev_zipf_update > self.ZIPF_UPDATE_INTERVAL:
                 self.prev_zipf_update = self.curr_time
                 random.shuffle(self.zipf_weights)
-                print(self.curr_time)
                 print(self.content_types)
                 print(self.zipf_weights)
             actor.execute()
@@ -168,7 +162,7 @@ if __name__ == "__main__":
     sim = Simulator(
         num_consumers=1, 
         num_producers=10, 
-        num_requests_per_consumer=100000,
+        end_time=10000,
         grid_rows=1, 
         grid_cols=1, 
         cache_ratio=0.1,
@@ -176,6 +170,10 @@ if __name__ == "__main__":
         rand_seed=RAND_SEED
     )
     sim.run()
+
+    # for router in sim.net_core.routers:
+    #     plt.plot(router.contentstore.rewards)
+    #     plt.show()
 
     """Print requests per timestep"""
 
