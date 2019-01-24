@@ -47,13 +47,13 @@ def visualize(adj_mtx, consumers, producers):
 """
 class Simulator:
 
-    def __init__(self, num_consumers, num_producers, end_time, grid_rows, grid_cols, cache_ratio, policy, rand_seed = 1):
+    def __init__(self, num_consumers, num_producers, end_time, grid_rows, grid_cols, cache_ratio, policy, rand_seed = 123):
         self.ZIPF_S = 1.2
         self.REQUEST_RATE = 1 # 1 req/s
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)
-        self.CACHE_UPDATE_INTERVAL = 10 # <10s> or <# consumers * request rate * 10 requests>
-        self.ZIPF_UPDATE_INTERVAL = 1000 # <1000s> or <# consumers * request rate * 1000 requests>
+        self.CACHE_UPDATE_INTERVAL = 1e2 
+        self.ZIPF_UPDATE_INTERVAL = 5e4
         self.RAND_SEED = rand_seed
         
         random.seed(self.RAND_SEED)
@@ -97,8 +97,8 @@ class Simulator:
         # generate probability distribution
         self.zipf_weights = [(1/k**self.ZIPF_S)/ (sum([1/n**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])) for k in range(1,self.NUM_CONTENT_TYPES+1)]
         random.shuffle(self.zipf_weights)
-        print(self.content_types)
-        print(self.zipf_weights)
+        # print(self.content_types)
+        # print(self.zipf_weights)
 
     
     def get_next_actor(self):
@@ -141,28 +141,29 @@ class Simulator:
                pass
             if self.curr_time - self.prev_cache_update > self.CACHE_UPDATE_INTERVAL:
                 self.prev_cache_update = self.curr_time
+                print(self.curr_time)
                 for ix, router in enumerate(self.net_core.routers):
                     req_count = router.contentstore.update_state()
                     self.req_counts[ix].append(req_count)
             if self.curr_time - self.prev_zipf_update > self.ZIPF_UPDATE_INTERVAL:
                 self.prev_zipf_update = self.curr_time
                 random.shuffle(self.zipf_weights)
-                print(self.content_types)
-                print(self.zipf_weights)
+                # print(self.content_types)
+                # print(self.zipf_weights)
             actor.execute()
             actor = self.get_next_actor()
             
         # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
 
 if __name__ == "__main__":
-    RAND_SEED = 7
+    RAND_SEED = 123
     
     """ Simulation Sample Scenario """
 
     sim = Simulator(
         num_consumers=1, 
-        num_producers=10, 
-        end_time=10000,
+        num_producers=25, 
+        end_time=5e6,
         grid_rows=1, 
         grid_cols=1, 
         cache_ratio=0.1,
@@ -181,14 +182,14 @@ if __name__ == "__main__":
 
     """Plot distribution of requests"""
     
-    req_freqs = [0 for c in range(sim.NUM_CONTENT_TYPES)]
-    for consumer in sim.consumers:
-        for i in range(sim.NUM_CONTENT_TYPES):
-            req_freqs[i] += consumer.gateway.contentstore.req_hist['content'+str(i)]
-        print(consumer.gateway.contentstore.req_hist)
-    print(req_freqs)
-    plt.bar([i for i in range(sim.NUM_CONTENT_TYPES)], req_freqs)
-    plt.show()
+    # req_freqs = [0 for c in range(sim.NUM_CONTENT_TYPES)]
+    # for consumer in sim.consumers:
+    #     for i in range(sim.NUM_CONTENT_TYPES):
+    #         req_freqs[i] += consumer.gateway.contentstore.req_hist['content'+str(i)]
+    #     print(consumer.gateway.contentstore.req_hist)
+    # print(req_freqs)
+    # plt.bar([i for i in range(sim.NUM_CONTENT_TYPES)], req_freqs)
+    # plt.show()
 
     """ Traditional Cache Experiment"""
     

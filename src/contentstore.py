@@ -2,7 +2,11 @@ from packet import Packet
 from collections import OrderedDict, defaultdict
 import sys
 import numpy as np
+import csv
 sys.path.insert(0, './ddpg_cache')
+
+f = open('req_hist.csv', 'w')
+writer = csv.writer(f)
 
 """DDPG-RL Imports"""
 
@@ -10,7 +14,6 @@ from ddpg_cache_train import Trainer as ddpg_trainer
 from ddpg_cache_buffer import MemoryBuffer
 
 """---------------"""
-
 
 """ Abstract Class for defining Cache Policies.
 
@@ -45,16 +48,40 @@ class ContentStore:
 
 """First in First Out Cache Policy"""
 class FifoContentStore(ContentStore):
-    def __init__(self, size):
+    def __init__(self, size, num_content_types):
         super().__init__(size)
+        self.num_content_types = num_content_types
+        self.reset_req_hist()
+        
+        # making training data
+        keys = []
+        for key in self.req_hist.keys():
+            keys.append(key)
+        writer.writerow(keys)
+        #
+
         self.store = OrderedDict()
-        self.req_hist = defaultdict(int) # for testing purposes
+
+    def reset_req_hist(self):
+        content_types = ['content' + str(i) for i in range(self.num_content_types)]
+        counts = [0 for content in range(self.num_content_types)]
+        self.req_hist = OrderedDict(zip(content_types, counts))
 
     def add(self, item):
         if self.size:
             if(len(self.store) == self.size):
                 self.store.popitem(last=False)
             self.store[item.name] = item
+
+    def update_state(self):
+        # making training data
+        values = []
+        for value in self.req_hist.values():
+            values.append(value)
+        writer.writerow(values)
+        #
+
+        self.reset_req_hist()
 
     def get_helper(self, item):
         try:
