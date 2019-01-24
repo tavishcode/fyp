@@ -16,3 +16,5 @@ Given training samples X and desired number of hidden layers
 Data is colected from each node at **t** time slot. 
 
 ##Step2. **Process data on a NN to extract features**
+- input_features => content_types*4
+- true_labels => one hot matrix of pop_levels * content_type

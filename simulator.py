@@ -5,8 +5,7 @@ from consumer import Consumer
 from producer import Producer
 from graph import Graph
 from packet import Packet
-from test import predict_popularity
-from test import baseline_model
+from test import *
 import random
 import math
 import numpy as np
@@ -50,19 +49,23 @@ def visualize(adj_mtx, consumers, producers):
 """
 class Simulator:
 
-    def __init__(self, num_consumers, num_producers, num_requests_per_consumer, grid_rows, grid_cols):
+    def __init__(self, num_consumers, num_producers, num_requests_per_consumer, grid_rows, grid_cols,model):
         self.NUM_REQUESTS_PER_CONSUMER = num_requests_per_consumer
         self.ZIPF_S = 1.2
         self.REQUEST_RATE = 1
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = 1 #int(0.1 * self.NUM_CONTENT_TYPES)
-        self.TIMESTEP = 0.5
+        self.TIMESTEP = 2
+        self.TRAIN_DELTA = self.NUM_REQUESTS_PER_CONSUMER*num_consumers / 8
+        self.START_PREDICTING = self.NUM_REQUESTS_PER_CONSUMER*num_consumers / 2
         
         self.prev_time = 0
         self.curr_time = 0
+        self.prev_reqs = 0
+        self.curr_reqs = 0
         self.consumers = []
         self.producers = []
-        self.model = False
+        self.model = loaded_model(model) if model else model
        
         num_routers = grid_rows * grid_cols
 
@@ -119,26 +122,43 @@ class Simulator:
         num_request_wave = 1
         actor = self.get_next_actor()
         while actor != None:
-            print(self.curr_time)
             if not self.model:
+                print("****CURRENTREQ***",self.curr_reqs)
                 print('first use of algorithm (random params)')
                 self.model = baseline_model(self.NUM_CONTENT_TYPES)
-            elif self.curr_time - self.prev_time > self.TIMESTEP:
+            if self.curr_reqs > self.START_PREDICTING and self.curr_reqs - self.prev_reqs > self.TRAIN_DELTA:
+                print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+                print("****CURRENTREQ***",self.curr_reqs)
+                self.prev_reqs = self.curr_reqs
+                # predict algorithm
+                for router in self.net_core.routers:
+                    predict(self.model,router.contentstore.req_hist)
+                    router.contentstore.update_state(self.content_types)
+            elif self.curr_reqs - self.prev_reqs > self.TRAIN_DELTA:
                 print("#################################################################################")
+                print("****CURRENTREQ***",self.curr_reqs)
                 # train algorithm
-                self.prev_time = self.curr_time
+                self.prev_reqs = self.curr_reqs
                 # update router features after a timestep
                 for router in self.net_core.routers:
-                    predict_popularity(self.model,router.contentstore,self.curr_time)
+                    train(self.model,router.contentstore,self.curr_time)
                     router.contentstore.update_state(self.content_types)
+            if (isinstance(actor,Consumer)):
+                self.curr_reqs+=1
             actor.execute()
             if num_request_wave < self.NUM_REQUESTS_PER_CONSUMER:
                 self.set_next_content_requests()
                 num_request_wave += 1
             actor = self.get_next_actor()
         # visualize(self.net_core.adj_mtx, self.consumers, self.producers)
-        self.model.summary()
+        report(self.model)
 
 if __name__ == "__main__":
-    sim = Simulator(num_consumers = 20, num_producers = 10, num_requests_per_consumer = 1000, grid_rows = 2, grid_cols = 2)
+    try:
+        numberOfReqs = int(sys.argv[1])
+        model = str(sys.argv[2])
+    except:
+        numberOfReqs = 1000
+        model = False
+    sim = Simulator(num_consumers = 2, num_producers = 10, num_requests_per_consumer = numberOfReqs, grid_rows = 1, grid_cols = 2,model = model)
     sim.run()

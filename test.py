@@ -2,6 +2,8 @@
 from keras.layers import Input, Dense
 from keras.models import Sequential
 from keras import losses
+from keras.utils import plot_model
+from keras.models import load_model
 from math import log10
 from router import Router
 import numpy as np
@@ -9,40 +11,37 @@ import sys
 sys.path.insert(0, './src')
 from contentstore import DlcppContentStore
 
-
-def predict_popularity(model,contentstore,timestamp):
-    #Training data from 2 time delta back
-    input_features = []
-    req_hist_prev = contentstore.req_hist_prev # dict of [Content Type] : number of hits
-    print("req_hist_prev",req_hist_prev)
-    num_requests = sum(req_hist_prev.values()) 
-    content_sum = len(req_hist_prev)
+def get_entropy(req_hist):
+    num_requests = sum(req_hist.values()) 
     request_entropy_array = []
-
-    for content_type in req_hist_prev.keys():
-        content_request = req_hist_prev[content_type]
+    for content_type in req_hist.keys():
+        content_request = req_hist[content_type]
         try:
-            content_probabity = content_request/num_requests
+            content_probability = content_request/num_requests
         except:
-            content_probabity = 0
-        request_entropy_array.append(content_probabity * log10(content_probabity) if content_probabity != 0 else 0)
-        
+            content_probability = 0
+        request_entropy_array.append(content_probability * log10(content_probability) if content_probability != 0 else 0)
     request_entropy = (-1) * sum(request_entropy_array)
-    # print("request_entropy_array",request_entropy_array)
-    # print("request_entropy",request_entropy)
+    return request_entropy
 
-    for content_type in req_hist_prev:
-        content_request = req_hist_prev[content_type]
+def extract_features(req_hist):
+    num_requests = sum(req_hist.values()) 
+    content_sum = len(req_hist)
+    request_entropy = get_entropy(req_hist)
+
+    input_features = []
+
+    for content_type in req_hist:
+        content_request = req_hist[content_type]
         input_features.append([num_requests,content_request,content_sum,request_entropy])
 
-    input_features = np.array(input_features)
-    print("input features",input_features)
+    return np.array(input_features)
 
+def get_true_labels(req_hist,pop_levels):
     #Calculate actual popularity **levels**(1 to 10) from previous time delta
-    req_hist = contentstore.req_hist
-    print("req_hist",req_hist)
+    # if popularity is first = [1,0,0,0,0, ..,0,0]
+    # if popularity is 0.43 -> (1 - 0.43) -> 0.57*100 -> 57% / pop_levels(10) -> int(5.7) -> 5 -> [0,0,0,0,0,1,0,0,0,0]
     req_hist_level = []
-    pop_levels = 10
     num_requests_correct = sum(req_hist.values())
     for content_type in req_hist.keys():
         if req_hist[content_type] == 0:
@@ -50,14 +49,29 @@ def predict_popularity(model,contentstore,timestamp):
         else:
             req_hist_level.append(int((100*(1 - (req_hist[content_type] / num_requests_correct)) / pop_levels)) )#1st = 0, last = 9
 
-    req_hist_level_vector = np.zeros((len(req_hist_level),pop_levels), dtype=int) #2D array of [Content type] [pop_levels]
-    req_hist_level_vector[np.arange(len(req_hist_level)), req_hist_level] = 1 
-    #if popularity is first = [1,0,0,0,0, ..,0,0]
-    #if popularity is 0.43 -> (1 - 0.43) -> 0.57*100 -> 57% / pop_levels(10) -> int(5.7) -> 5 -> [0,0,0,0,0,1,0,0,0,0]
-    print("req_hist_level_vector",req_hist_level_vector)
+    true_labels = np.zeros((len(req_hist_level),pop_levels), dtype=int) #2D array of [Content type] [pop_levels]
+    true_labels[np.arange(len(req_hist_level)), req_hist_level] = 1 
+    return true_labels
+
+
+
+def train(model,contentstore,timestamp):
+    pop_levels = 10
+    input_features = extract_features(contentstore.prev_req_hist)
+    true_labels = get_true_labels(contentstore.req_hist,pop_levels)
+    print(input_features)
+    print(true_labels)
     if not input_features.size == 0:
-        model.fit(input_features,req_hist_level_vector, epochs=10,verbose=2)
+        model.fit(input_features,true_labels, epochs=100,verbose=2)
+        score = model.evaluate(input_features,true_labels)
+        print(score)
  
+
+def predict(model, data):
+    input_features = extract_features(data)
+    prediction = model.predict(input_features)
+    # print(prediction)
+    print(np.argmax(prediction,axis = 1))
 
 def baseline_model(n):
     model = Sequential()
@@ -65,6 +79,14 @@ def baseline_model(n):
     model.add(Dense(10, input_dim=8, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
+
+def loaded_model(file):
+    return load_model(file)
+
+def report(model):
+    print(model.summary())
+    model.save('my_model.h5')
+    plot_model(model, to_file='model.png')
 
             
         

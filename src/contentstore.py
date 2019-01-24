@@ -100,7 +100,7 @@ class DlcppContentStore(ContentStore):
     def __init__(self, size):
         super().__init__(size)
         self.req_hist = defaultdict()
-        self.req_hist_prev = OrderedDict()
+        self.prev_req_hist = OrderedDict()
         self.store = OrderedDict()
 
     def add(self, item):
@@ -117,8 +117,7 @@ class DlcppContentStore(ContentStore):
             print(e)
     
     def update_state(self,content_types): # Called at each time delta
-        self.req_hist_prev = self.req_hist # Capture previous time delta popularity
-        print(self.req_hist_prev)
+        self.prev_req_hist = self.req_hist # Capture previous time delta popularity
         self.req_hist = OrderedDict.fromkeys(content_types,0)
        
 

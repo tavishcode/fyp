@@ -25,7 +25,7 @@ class Producer:
 
     def receive(self, time, pkt, src):
         """Adds rcv event for a data packet to gateway"""
-        print(self.name + ' receives request for ' + pkt.name)
+        # print(self.name + ' receives request for ' + pkt.name)
         pkt.hop_count += 1
         new_data_pkt = Packet(pkt.name, is_interest=False, hop_count=pkt.hop_count)
         src.q.append({'time': time + 0.1, 'type': 'REC', 'pkt': new_data_pkt,'src': self})

@@ -24,7 +24,7 @@ class Consumer:
 
     def request(self, time, pkt):
         """Add receieve event for an interest packet to gateway"""
-        print(self.name + ' requests ' + pkt.name)
+        # print(self.name + ' requests ' + pkt.name)
         self.clock = time
         self.gateway.q.append({'time': time + 0.1, 'type': 'REC', 'pkt': pkt, 'src': self})
         self.gateway.q.sort(key=lambda x: x['time'])
@@ -32,4 +32,4 @@ class Consumer:
     def receive(self, time, pkt, src):
         """Log information for receievd data packet"""
         pkt.hop_count += 1
-        print(self.name + ' receives pkt ' + pkt.name + ' after ' + str(pkt.hop_count) + ' hops')
+        # print(self.name + ' receives pkt ' + pkt.name + ' after ' + str(pkt.hop_count) + ' hops')
