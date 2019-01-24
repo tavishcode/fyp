@@ -2,7 +2,11 @@ from packet import Packet
 from collections import OrderedDict, defaultdict
 import sys
 import numpy as np
+import csv
 sys.path.insert(0, './ddpg_cache')
+
+f = open('req_hist.csv', 'w')
+writer = csv.writer(f)
 
 """DDPG-RL Imports"""
 
@@ -47,16 +51,40 @@ class ContentStore:
 
 """First in First Out Cache Policy"""
 class FifoContentStore(ContentStore):
-    def __init__(self, size):
+    def __init__(self, size, num_content_types):
         super().__init__(size)
+        self.num_content_types = num_content_types
+        self.reset_req_hist()
+        
+        # making training data
+        keys = []
+        for key in self.req_hist.keys():
+            keys.append(key)
+        writer.writerow(keys)
+        #
+
         self.store = OrderedDict()
-        self.req_hist = defaultdict(int) # for testing purposes
+
+    def reset_req_hist(self):
+        content_types = ['content' + str(i) for i in range(self.num_content_types)]
+        counts = [0 for content in range(self.num_content_types)]
+        self.req_hist = OrderedDict(zip(content_types, counts))
 
     def add(self, item):
         if self.size:
             if(len(self.store) == self.size):
                 self.store.popitem(last=False)
             self.store[item.name] = item
+
+    def update_state(self):
+        # making training data
+        values = []
+        for value in self.req_hist.values():
+            values.append(value)
+        writer.writerow(values)
+        #
+
+        self.reset_req_hist()
 
     def get_helper(self, item):
         try:
@@ -144,13 +172,12 @@ class DdpgContentStore(ContentStore):
 
         # Bootstrap first updates
         self.bootstrap = LfuContentStore(size)
-        self.bootstrap_period = 1000000
+        self.bootstrap_period = 100000
 
         self.NUM_CONTENT_TYPES = num_content_types
         self.curr_reqs = defaultdict(int)
         self.ram = MemoryBuffer(1000000)
         self.trainer = ddpg_trainer(self.NUM_CONTENT_TYPES, self.NUM_CONTENT_TYPES, self.ram)
-        self.trainer.load_models(1)
         self.first_run = True
         self.state = []
         self.action = None
@@ -158,6 +185,7 @@ class DdpgContentStore(ContentStore):
         self.model_updates = 0
         self.temp_hits = 0
         self.temp_misses = 0
+        self.rewards = []
 
     def get_helper(self, item):
         try:
@@ -206,7 +234,8 @@ class DdpgContentStore(ContentStore):
         if temp_reqs and not self.first_run:
 
             reward = self.temp_hits/temp_reqs
-            # print('reward ' + str(reward))
+            self.rewards.append(reward)
+            print('reward ' + str(reward))
             new_state = []
             for c in range(self.NUM_CONTENT_TYPES):
                 new_state.append(0)
@@ -301,7 +330,7 @@ class LstmContentStore(ContentStore):
         idx = self.get_content_index(content)
         if self.cur_timestep == self.timesteps:
             self.labels[self.cur_batch*self.NUM_CONTENT_TYPES + idx] += 1
-            
+
         self.data[self.cur_batch][idx][timestep] += 1
         self.increment()
 
