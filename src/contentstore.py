@@ -12,6 +12,8 @@ from ddpg_cache_buffer import MemoryBuffer
 """---------------"""
 
 
+from lstm import LSTMTrainer
+
 """ Abstract Class for defining Cache Policies.
 
     Attributes: 
@@ -258,3 +260,89 @@ class DdpgContentStore(ContentStore):
             print(self.num_updates)
         if self.num_updates == self.bootstrap_period:
             self.trainer.load_models(1)
+
+"""Lstm Cache Policy"""
+class LstmContentStore(ContentStore):
+    super().__init__(size, num_content_types)
+    self.store = OrderedDict() 
+    self.NUM_CONTENT_TYPES = num_content_types
+    self.timesteps = 5
+    self.REQUESTS_IN_TIMESTEP = 20
+    self.MINI_BATCH_SIZE = 4
+    self.BOOTSTRAPPING = True
+    self.bootstrap = LfuContentStore(size)
+    
+    self.data = np.zeros([self.MINI_BATCH_SIZE, self.NUM_CONTENT_TYPES, self.timesteps])
+    self.labels = np.zeros([self.NUM_CONTENT_TYPES*self.MINBATCH_SIZE])
+
+    self.curr_reqs = 0
+    self.cur_timestep = 0
+    self.cur_sample = 0
+    
+    self.temp_hits = 0
+    self.temp_misses = 0
+
+    def get_content_index(self, content):
+        return int(str.split("content")[1])
+
+    def increment(self):
+        self.curr_reqs += 1
+        if curr_reqs == self.REQUESTS_IN_TIMESTEP:
+            self.curr_reqs = 0
+            self.cur_timestep += 1
+        if self.cur_timestep == self.timesteps:
+            self.cur_timestep = 0
+            self.cur_sample += 1
+        if self.cur_sample == self.MINI_BATCH_SIZE:
+            self.cur_sample = 0
+            self.train()
+
+    def record(self, content):
+        idx = self.get_content_index(content)
+        if self.cur_timestep == self.timesteps:
+            self.labels[self.cur_batch*self.NUM_CONTENT_TYPES + idx] += 1
+            
+        self.data[self.cur_batch][idx][timestep] += 1
+        self.increment()
+
+    def train(self):
+        
+
+
+
+    def add(self, item): 
+        if self.BOOTSTRAPPING:
+            self.bootstrap.add(item)
+
+    def get_helper(self, item):
+        self.record(item)
+        try:
+            self.req_hist[item.name] += 1
+            return self.store[item.name]
+        except:
+            return None
+
+    def get(self, item_name):
+        """Wrapper function for get_helper which includes hit/miss statistic updates"""
+        item = self.get_helper(item_name)
+        if item != None and not self.BOOTSTRAPPING:
+            self.hits += 1
+        elif not self.BOOTSTRAPPING:
+            self.misses += 1
+        else: # use bootstrap
+            item = self.bootstrap.get(item_name)
+            self.hits = self.bootstrap.hits
+            self.misses = self.bootstrap.misses
+
+        return item
+
+
+
+
+    def populate(self):
+        pass
+
+    def record_timestep(self, l, content):
+        l[content] += 1
+
+    
