@@ -16,7 +16,7 @@ from packet import Packet
 class Router:
     def __init__(self, cache_size, num_content_types, name, policy):
         if policy == 'fifo':
-            self.contentstore = FifoContentStore(cache_size)
+            self.contentstore = FifoContentStore(cache_size, num_content_types)
         elif policy == 'lru':
             self.contentstore = LruContentStore(cache_size)
         elif policy == 'lfu':
