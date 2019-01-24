@@ -135,6 +135,7 @@ class Simulator:
             self.set_next_content_request(consumer)
         actor = self.get_next_actor()
         while self.curr_time < self.end_time:
+            # print(self.curr_time)
             if self.curr_time == 0 and self.prev_cache_update == 0:
                # first run of algorithm (no prior training)
                pass
