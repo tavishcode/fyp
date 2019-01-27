@@ -80,7 +80,7 @@ def baseline_model(n):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
-def loaded_model(file):
+def load_trained_model(file):
     return load_model(file)
 
 def report(model):

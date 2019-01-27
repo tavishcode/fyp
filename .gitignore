@@ -4,3 +4,4 @@
 venv/
 *.h5
 data/
+*.csv

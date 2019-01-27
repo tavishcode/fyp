@@ -2,20 +2,19 @@ import pandas as pd
 import numpy as np
 import sys
 
-sys.path.insert(0, '../lstm_cache')
-from lstm import LstmTrainer
-sys.path.insert(0, '../dlcpp_cache')
-from dlcpp_trainer import DlcppTrainer
+sys.path.insert(0, './')
+from lstm_cache.lstm import LstmTrainer
+from dlcpp_cache.dlcpp_trainer import DlcppTrainer
 
 
 class SupervisedPlayground:
     def __init__(self, batchwise=False):
         self.batchwise = batchwise
-        self.data = np.array(pd.read_csv("../data/req_hist_100_million.csv"))
-        self.samples = len(data)
-        self.contenttypes = len(data.columns)
-        self.TRAIN_DELTA = 100 #100 rows at a time
-        self.trainer = DlcppTrainer
+        self.data = np.array(pd.read_csv("./data/req_hist_100_million.csv"))
+        self.samples = len(self.data)
+        self.contenttypes = len(self.data[0])
+        self.TRAIN_DELTA = 10 #10000 rows at a time
+        self.trainer = DlcppTrainer(self.contenttypes)
         self.reqs_per_row = self.TRAIN_DELTA*100
 
     def reshape_to_deepcache(self, timesteps):
@@ -28,19 +27,30 @@ class SupervisedPlayground:
         return X, y
 
     def dlcpp_train(self):
-        print(self.data[0], self.data[1])
         batches = np.array_split(self.data,self.TRAIN_DELTA,axis=0)
         curr_batch = False
+        first_time = True
         for batch in batches:
-            prev_batch = curr_batch if curr_batch else False
+            prev_batch = False if first_time else curr_batch
             curr_batch = np.mean(batch,axis=0)
-            if curr_batch and prev_batch:
+            if not first_time:
+                # print("curr",curr_batch,"prev",prev_batch)
                 self.trainer.train_from_csv(prev_batch,curr_batch,self.reqs_per_row)
+            first_time = False
+        score = self.trainer.evaluate_csv(curr_batch,prev_batch,self.reqs_per_row)
+        if score[1] > 0.90:
+            print("score",score)
+            self.trainer.report()
+        else:
+            print("Low accuracy",score)
+        
 
 
-    def simulate(self, trainer):
-        if trainer.name == "lstm":
+    def simulate(self):
+        if self.trainer.name == "lstm":
             X, y = self.reshape_to_deepcache(trainer.timesteps)
+        elif self.trainer.name == "dlcpp":
+            self.dlcpp_train()
 
         if not self.batchwise:
             trainer.train(X[0: 600000], y[0: 600000])
@@ -50,5 +60,7 @@ class SupervisedPlayground:
             pass
         
 
-    d
+if __name__ == "__main__":
+    train = SupervisedPlayground(batchwise=True)
+    train.simulate()
                 

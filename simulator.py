@@ -53,7 +53,7 @@ class Simulator:
         self.REQUEST_RATE = 1 # 1 req/s
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)
-        self.CACHE_UPDATE_INTERVAL = 1e2 
+        self.CACHE_UPDATE_INTERVAL = 1e1
         self.ZIPF_UPDATE_INTERVAL = 5e4
         self.RAND_SEED = rand_seed
         
@@ -67,7 +67,6 @@ class Simulator:
         self.num_request_waves = 0
         self.consumers = []
         self.producers = []
-        self.model = loaded_model(model) if model else model
        
         num_routers = grid_rows * grid_cols
 
@@ -169,7 +168,7 @@ if __name__ == "__main__":
         grid_rows=1, 
         grid_cols=1, 
         cache_ratio=0.1,
-        policy='fifo', 
+        policy='dlcpp', 
         rand_seed=RAND_SEED
     )
     sim.run()

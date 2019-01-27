@@ -3,23 +3,22 @@ from collections import OrderedDict, defaultdict
 import sys
 import numpy as np
 import csv
-sys.path.insert(0, './ddpg_cache')
+# sys.path.insert(0, './ddpg_cache')
 
 f = open('req_hist.csv', 'w')
 writer = csv.writer(f)
 
 """DDPG-RL Imports"""
 
-from ddpg_cache_train import Trainer as ddpg_trainer
-from ddpg_cache_buffer import MemoryBuffer
+# from ddpg_cache_train import Trainer as ddpg_trainer
+# from ddpg_cache_buffer import MemoryBuffer
 
 """---------------"""
 
+# from lstm import LSTMTrainer
 
-from lstm import LSTMTrainer
-
-sys.path.insert(0, '../dlcpp_cache')
-from dlcpp_trainer import DlcppTrainer
+sys.path.insert(0, './')
+from dlcpp_cache.dlcpp_trainer import DlcppTrainer
 
 """ Abstract Class for defining Cache Policies.
 
@@ -161,21 +160,25 @@ class DlcppContentStore(ContentStore):
         self.num_updates = 0
         self.BOOTSTRAPPING = True
         self.bootstrap = LfuContentStore(size)
-        # self.trainer = dlcpp_trainer(self.NUM_CONTENT_TYPES)
-        self.pop_rank
+        self.trainer = DlcppTrainer(self.NUM_CONTENT_TYPES,training=False)
+        self.popularity_table = defaultdict(int)
 
-    def get(self, item_name):
-        """Wrapper function for get_helper which includes hit/miss statistic updates"""
-        item = self.get_helper(item_name)
-        if item != None and not self.BOOTSTRAPPING:
-            self.hits += 1
-        elif not self.BOOTSTRAPPING:
-            self.misses += 1
-        else: # use bootstrap
-            item = self.bootstrap.get(item_name)
-            self.hits = self.bootstrap.hits
-            self.misses = self.bootstrap.misses
-        return item
+    # def get(self, item_name):
+    #     """Wrapper function for get_helper which includes hit/miss statistic updates"""
+    #     item = self.get_helper(item_name)
+    #     if item != None and not self.BOOTSTRAPPING:
+    #         self.hits += 1
+    #     elif not self.BOOTSTRAPPING:
+    #         self.misses += 1
+    #     else: # use bootstrap
+    #         item = self.bootstrap.get(item_name)
+    #         self.hits = self.bootstrap.hits
+    #         self.misses = self.bootstrap.misses
+    #     return item
+
+    def add(self, item): 
+        if self.BOOTSTRAPPING:
+            self.bootstrap.add(item)
     
     def get_helper(self, item):
         try:
@@ -184,25 +187,19 @@ class DlcppContentStore(ContentStore):
         except:
             return None
     
-    def update_ranking(self):
-        if hasattr(self.action, '__len__'):
-            rating_table = []
-            for ix in range(len(self.action)):
-                rating_table.append(['content'+ str(ix), self.action[ix]])
-            rating_table.sort(key = lambda x: x[1], reverse = True)
-            self.store = {}
-            for ix in range(self.size):
-                self.store[rating_table[ix][0]] = Packet(rating_table[ix][0], is_interest=False)
     
     def update_state(self):
         """Called every CACHE_UPDATE_INTERVAL"""
         #TODO get latest popularity rankings
+        # self.get_latest_rankings()
+        score = self.trainer.evaluate(self.curr_reqs,self.prev_reqs)
+        print(score)
         self.prev_reqs = self.curr_reqs
         self.curr_reqs = defaultdict(int)
-        self.get_latest_rankings(prev_reqs,curr_reqs)
 
-    def get_latest_rankings(self,prev_reqs, curr_reqs):
-        ranks = self.trainer.updated_popularity(prev_reqs,curr_reqs)
+    def get_latest_rankings(self):
+        self.popularity_table = self.trainer.updated_popularity(self.curr_reqs)
+        print(self.popularity_table)
 
 
 """DDPG Cache Policy with Bootstrap"""
@@ -332,24 +329,25 @@ class DdpgContentStore(ContentStore):
 
 """Lstm Cache Policy"""
 class LstmContentStore(ContentStore):
-    super().__init__(size, num_content_types)
-    self.store = OrderedDict() 
-    self.NUM_CONTENT_TYPES = num_content_types
-    self.timesteps = 5
-    self.REQUESTS_IN_TIMESTEP = 20
-    self.MINI_BATCH_SIZE = 4
-    self.BOOTSTRAPPING = True
-    self.bootstrap = LfuContentStore(size)
-    
-    self.data = np.zeros([self.MINI_BATCH_SIZE, self.NUM_CONTENT_TYPES, self.timesteps])
-    self.labels = np.zeros([self.NUM_CONTENT_TYPES*self.MINBATCH_SIZE])
+    def __init__(self, size, num_content_types):
+        super().__init__(size)
+        self.store = OrderedDict() 
+        self.NUM_CONTENT_TYPES = num_content_types
+        self.timesteps = 5
+        self.REQUESTS_IN_TIMESTEP = 20
+        self.MINI_BATCH_SIZE = 4
+        self.BOOTSTRAPPING = True
+        self.bootstrap = LfuContentStore(size)
+        
+        self.data = np.zeros([self.MINI_BATCH_SIZE, self.NUM_CONTENT_TYPES, self.timesteps])
+        self.labels = np.zeros([self.NUM_CONTENT_TYPES*self.MINBATCH_SIZE])
 
-    self.curr_reqs = 0
-    self.cur_timestep = 0
-    self.cur_sample = 0
-    
-    self.temp_hits = 0
-    self.temp_misses = 0
+        self.curr_reqs = 0
+        self.cur_timestep = 0
+        self.cur_sample = 0
+        
+        self.temp_hits = 0
+        self.temp_misses = 0
 
     def get_content_index(self, content):
         return int(str.split("content")[1])
@@ -375,9 +373,7 @@ class LstmContentStore(ContentStore):
         self.increment()
 
     def train(self):
-        
-
-
+        pass
 
     def add(self, item): 
         if self.BOOTSTRAPPING:
