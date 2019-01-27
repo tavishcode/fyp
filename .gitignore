@@ -3,5 +3,4 @@
 .vscode/
 venv/
 *.h5
-test2.py
-*.txt
+data/

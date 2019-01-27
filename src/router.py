@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, './src')
-from contentstore import FifoContentStore, LruContentStore, LfuContentStore, DlcppContentStore
+from contentstore import FifoContentStore, LruContentStore, LfuContentStore, DdpgContentStore, DlcppContentStore
 from packet import Packet
 
 """ A CCN Router Node
@@ -11,10 +11,20 @@ from packet import Packet
         FIB: Dict with "node name" : node
         PIT: Dict with "packet name" : [[node, hop_count], ...]
         q: A queue of events receieved by a node
+
 """
 class Router:
-    def __init__(self, cache_size, name):
-        self.contentstore = DlcppContentStore(cache_size)
+    def __init__(self, cache_size, num_content_types, name, policy):
+        if policy == 'fifo':
+            self.contentstore = FifoContentStore(cache_size, num_content_types)
+        elif policy == 'lru':
+            self.contentstore = LruContentStore(cache_size)
+        elif policy == 'lfu':
+            self.contentstore = LfuContentStore(cache_size)
+        elif policy == 'ddpg':
+            self.contentstore = DdpgContentStore(cache_size, num_content_types)
+        elif policy == 'dlcpp':
+            self.contentstore = DlcppContentStore(cache_size, num_content_types)
         self.FIB = {} 
         self.PIT = {} 
         self.name = name
