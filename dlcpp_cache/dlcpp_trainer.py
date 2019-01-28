@@ -6,6 +6,7 @@ from keras.models import load_model
 from math import log10
 from collections import defaultdict
 import numpy as np
+import matplotlib.pyplot as plt
 import sys
 
 class DlcppTrainer:
@@ -84,8 +85,10 @@ class DlcppTrainer:
     def get_entropy_csv(self,req_prob):
         request_entropy_array = []
         for content_probability in req_prob:
-            request_entropy_array.append(content_probability * log10(content_probability) if content_probability != 0 else 0)
+            request_entropy_array.append(content_probability *log10(content_probability))
         request_entropy = (-1) * sum(request_entropy_array)
+        # print(request_entropy_array)
+        # print(request_entropy)
         return request_entropy
 
     def extract_features_csv(self,req_prob, reqs_per_row):
@@ -111,7 +114,7 @@ class DlcppTrainer:
             true_labels[-1][-1] = 1
         ix=0
         for content_probability in req_prob:
-            if content_probability == 0.00000:
+            if content_probability <= 0.01:
                 popularity = self.pop_levels-1
             else:
                 popularity = int((100*(1 - content_probability) / (100/self.pop_levels))) # 1st = 0, last = 9
@@ -127,11 +130,27 @@ class DlcppTrainer:
             self.model = self.baseline_model()
         else:
             input_features = self.extract_features_csv(prev_reqs,reqs_per_row)
+            # print(input_features)
+            true_labels = self.get_true_labels_csv(curr_reqs,reqs_per_row)
+            # print(true_labels)
+            self.model.fit(input_features, true_labels, epochs=50, verbose=0, validation_split=0.3)
+            score = self.model.evaluate(input_features,true_labels)
+            print(score)
+
+    """TODO Simple input features"""
+    def train_from_csv_2(self,prev_reqs, curr_reqs, reqs_per_row):
+        if not self.model:
+            self.model = self.baseline_model()
+        else:
+            entropy = self.get_entropy_csv(prev_reqs)
+            print(prev_reqs)
+            input_features = np.split(np.append(prev_reqs,entropy),self.NUM_CONTENT_TYPES+1)
+            print(input_features)
             true_labels = self.get_true_labels_csv(curr_reqs,reqs_per_row)
             # print(true_labels)
             self.model.fit(input_features, true_labels, epochs=100, verbose=0)
-            # score = self.model.evaluate(input_features,true_labels)
-            # print(score)
+            score = self.model.evaluate(input_features,true_labels)
+            print(score)
 
     def evaluate_csv(self,curr_reqs,prev_reqs,reqs_per_row):
         X = self.extract_features_csv(prev_reqs,reqs_per_row)
@@ -159,7 +178,7 @@ class DlcppTrainer:
 
     def baseline_model(self):
         model = Sequential()
-        model.add(Dense(5, activation='relu',kernel_initializer='random_uniform',bias_initializer='zeros'))
+        model.add(Dense(4, activation='relu',kernel_initializer='random_uniform',bias_initializer='zeros'))
         model.add(Dense(self.pop_levels, activation='softmax'))
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         return model
@@ -171,3 +190,13 @@ class DlcppTrainer:
     def report(self):
         print(self.model.summary())
         self.model.save('./dlcpp_cache/dlcpp_model.h5')
+
+    def plot_metrics(self,loss,accuracy):
+        plt.plot(accuracy,np.arange(1,accuracy.len))
+        plt.ylabel('accuracy')
+        plt.xlabel('batch')
+        plt.show()
+        plt.plot(loss,np.arange(1,loss.len))
+        plt.ylabel('loss')
+        plt.xlabel('batch')
+        plt.show()
