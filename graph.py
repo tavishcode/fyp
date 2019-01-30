@@ -19,6 +19,7 @@ import random
 """
 class Graph:
     def __init__(self, cache_size, num_content_types, grid_rows, grid_cols, policy, q):
+
         """Creates routers and sets node links in adj_mtx"""
         self.routers = []
         self.num_routers = grid_rows * grid_cols

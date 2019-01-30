@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 
 class SupervisedCacheEnv:
-
     def __init__(self, path, start, end, window, num_preds):
         df = pd.read_csv(path, sep=',', skiprows=start+1, nrows=end, header=None)
         self.arr = df.T.values.astype('float32')

@@ -67,6 +67,7 @@ class Simulator:
         self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)
         self.CACHE_UPDATE_INTERVAL = cache_update_interval
         self.ZIPF_UPDATE_INTERVAL = zipf_update_interval
+
         self.RAND_SEED = rand_seed
         self.q = EventList()
 
@@ -111,10 +112,12 @@ class Simulator:
         # generate probability distribution
         total = sum([1/n**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])
         self.zipf_weights = [(1/k**self.ZIPF_S)/total for k in range(1,self.NUM_CONTENT_TYPES+1)]
+
         random.shuffle(self.zipf_weights)
         # print(self.content_types)
         # print(self.zipf_weights)
 
+    
     def get_next_actor(self):
         """Returns next actor (node) to execute event for (event with min value for time)"""
         arr = self.consumers + self.producers + self.net_core.routers
@@ -155,6 +158,7 @@ class Simulator:
         actor = self.get_next_actor()
         while self.curr_time < self.end_time:
             print(self.curr_time)
+
             if self.curr_time == 0 and self.prev_cache_update == 0:
                # first run of algorithm (no prior training)
                pass
@@ -204,6 +208,7 @@ if __name__ == "__main__":
     
     # print(avg_hits/9)
 
+
     """Print requests per timestep"""
 
     # print(sim.req_counts)
@@ -223,6 +228,7 @@ if __name__ == "__main__":
     
     # cache_ratios = [0.2,0.4,0.6]
     # policies = ['gru', 'lfu', 'lru']
+
     # for policy in policies:
     #     hit_ratios = []
     #     for cache_ratio in cache_ratios:
@@ -240,6 +246,7 @@ if __name__ == "__main__":
     #             policy=policy, 
     #             rand_seed = RAND_SEED
     #         )
+
     #         sim.run()
     #         hits = 0
     #         reqs = 0

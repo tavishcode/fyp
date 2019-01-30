@@ -17,6 +17,7 @@ def soft_update(target, source, tau):
 			target_param.data * (1.0 - tau) + param.data * tau
 		)
 
+
 def hard_update(target, source):
 	"""
 	Copies the parameters from source network to target network
@@ -26,6 +27,7 @@ def hard_update(target, source):
 	"""
 	for target_param, param in zip(target.parameters(), source.parameters()):
 			target_param.data.copy_(param.data)
+
 
 def save_training_checkpoint(state, is_best, episode_count):
 	"""
@@ -44,6 +46,7 @@ def save_training_checkpoint(state, is_best, episode_count):
 class OrnsteinUhlenbeckActionNoise:
 
 	def __init__(self, action_dim, mu = 0, theta = 0.15, sigma = 0.3):
+
 		self.action_dim = action_dim
 		self.mu = mu
 		self.theta = theta
@@ -58,6 +61,7 @@ class OrnsteinUhlenbeckActionNoise:
 		dx = dx + self.sigma * np.random.randn(len(self.X))
 		self.X = self.X + dx
 		return self.X
+
 
 # use this to plot Ornstein Uhlenbeck random motion
 if __name__ == '__main__':
