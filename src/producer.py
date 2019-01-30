@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, './src')
 from packet import Packet
+from eventlist import *
 
 """ A CCN Producer Node
 
@@ -11,22 +12,22 @@ from packet import Packet
         q: A queue of events receieved by a node
 """
 class Producer:
-    def __init__(self, name, gateway, content):
+    def __init__(self, name, gateway, content, q):
         self.name = name
         self.gateway = gateway
         self.content = content
-        self.q = []
+        self.q = q
 
     def execute(self):
         """Execute next event in producer q"""
-        event = self.q.pop(0)
-        if event['type'] == 'REC':
-            self.receive(event['time'], event['pkt'], event['src'])
+        event = self.q.popfront()
+        assert(event.actor_name == self.name)
+        if event.func == 'REC':
+            self.receive(event.time, event.pkt, event.src)
 
     def receive(self, time, pkt, src):
         """Adds rcv event for a data packet to gateway"""
-        print(self.name + ' receives request for ' + pkt.name)
+        # print(self.name + ' receives request for ' + pkt.name)
         pkt.hop_count += 1
         new_data_pkt = Packet(pkt.name, is_interest=False, hop_count=pkt.hop_count)
-        src.q.append({'time': time + 0.1, 'type': 'REC', 'pkt': new_data_pkt,'src': self})
-        src.q.sort(key=lambda x: x['time'])
+        self.q.add(Event(src.name, time+0.1, 'REC', new_data_pkt, self))
