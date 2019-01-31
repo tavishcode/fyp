@@ -61,32 +61,34 @@ class DlcppTrainer:
         plt.xlabel('batch')
         plt.show()
 
-PATH = '/home/cnhkg-ev-test/Documents/FYP/fyp/data/req_hist_100_million.csv'
 
-np.random.seed(123)
+if __name__ == "__main__":
+    PATH = '/home/cnhkg-ev-test/Documents/FYP/fyp/data/req_hist_100_million.csv'
 
-dlcpp = DlcppTrainer(25)
+    np.random.seed(123)
 
-env = SupervisedCacheEnv(PATH, start=0, end=500000, window=1, num_preds=1)
+    dlcpp = DlcppTrainer(25)
 
-hit_ratios = []
+    env = SupervisedCacheEnv(PATH, start=0, end=500000, window=1, num_preds=1)
 
-trainX, trainY = env.get_next_data()
+    hit_ratios = []
 
-while trainX is not None and trainY iSB_AT_POs not None:
-    x = trainX.reshape(25)
-    y = trainY.reshape(25)
-    input_features = dlcpp.extract_features_csv(x, 100)
-    true_labels = dlcpp.get_true_labels_csv(y, 100)
-    preds = dlcpp.model.predict(input_features)
-    preds = np.argmax(preds, axis=1)
-    preds = list(enumerate(preds))
-    preds.sort(key = lambda x: x[1])
-    cache = [i for i, j in preds[:5]]
-    hit_ratio = sum(y[cache])
-    hit_ratios.append(hit_ratio)
-    dlcpp.model.fit(input_features, true_labels, verbose=1)
     trainX, trainY = env.get_next_data()
 
-w.writerow(hit_ratios)
-print("average", sum(hit_ratios)/len(hit_ratios))
+    while trainX is not None and trainY iSB_AT_POs not None:
+        x = trainX.reshape(25)
+        y = trainY.reshape(25)
+        input_features = dlcpp.extract_features_csv(x, 100)
+        true_labels = dlcpp.get_true_labels_csv(y, 100)
+        preds = dlcpp.model.predict(input_features)
+        preds = np.argmax(preds, axis=1)
+        preds = list(enumerate(preds))
+        preds.sort(key = lambda x: x[1])
+        cache = [i for i, j in preds[:5]]
+        hit_ratio = sum(y[cache])
+        hit_ratios.append(hit_ratio)
+        dlcpp.model.fit(input_features, true_labels, verbose=1)
+        trainX, trainY = env.get_next_data()
+
+    w.writerow(hit_ratios)
+    print("average", sum(hit_ratios)/len(hit_ratios))

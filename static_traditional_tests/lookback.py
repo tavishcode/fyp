@@ -7,28 +7,30 @@ from packet import Packet
 import random
 import csv
 
-f = open('lookback-hits.csv', 'w')
-w = csv.writer(f)
+if __name__ == "__main__":
 
-SEED = 123
-TIMESTEPS = 500000
+    f = open('lookback-hits.csv', 'w')
+    w = csv.writer(f)
 
-env = TraditionalCacheEnv(TIMESTEPS, SEED)
-cs = LookbackContentStore(5, 25)
-interval = 0
-hit_ratios = []
+    SEED = 123
+    TIMESTEPS = 500000
 
-while interval < TIMESTEPS:
-    reqs = env.get_requests(interval)
-    for req in reqs:
-        # print(req)
-        found = cs.get(req)
-        # print(found)
-    # print(cs.timestep_hits)
-    hit_ratios.append(cs.timestep_hits/(cs.timestep_hits+cs.timestep_misses))
-    cs.update_state()
-    interval += 1
-    if interval % 10000 == 0:
-        print(interval)
+    env = TraditionalCacheEnv(TIMESTEPS, SEED)
+    cs = LookbackContentStore(5, 25)
+    interval = 0
+    hit_ratios = []
 
-w.writerow(hit_ratios)
+    while interval < TIMESTEPS:
+        reqs = env.get_requests(interval)
+        for req in reqs:
+            # print(req)
+            found = cs.get(req)
+            # print(found)
+        # print(cs.timestep_hits)
+        hit_ratios.append(cs.timestep_hits/(cs.timestep_hits+cs.timestep_misses))
+        cs.update_state()
+        interval += 1
+        if interval % 10000 == 0:
+            print(interval)
+
+    w.writerow(hit_ratios)

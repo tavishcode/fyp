@@ -30,11 +30,11 @@ class GruEncoderDecoder:
         score = self.model.evaluate([encoder_input, decoder_input], decoder_output, verbose=1)
         return (self.model.metrics_names, score)
 
-np.random.seed(123)
+# np.random.seed(123)
 
-encoder_input = np.random.rand(2, 3, 1)
-decoder_input = encoder_input[:,-1,:].reshape(-1, 1, 1)
-decoder_output = np.random.rand(2, 1, 1)
+# encoder_input = np.random.rand(2, 3, 1)
+# decoder_input = encoder_input[:,-1,:].reshape(-1, 1, 1)
+# decoder_output = np.random.rand(2, 1, 1)
 
 # print(encoder_input)
 # print()
@@ -42,8 +42,8 @@ decoder_output = np.random.rand(2, 1, 1)
 # print()
 # print(decoder_output)
 
-model = GruEncoderDecoder(3, 64)
+# model = GruEncoderDecoder(3, 64)
 
-model.train(encoder_input, decoder_input, decoder_output)
+# model.train(encoder_input, decoder_input, decoder_output)
 
-print(model.predict(encoder_input, decoder_input))
+# print(model.predict(encoder_input, decoder_input))
