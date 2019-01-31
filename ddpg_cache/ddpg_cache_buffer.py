@@ -44,3 +44,5 @@ class MemoryBuffer:
 		if self.len > self.maxSize:
 			self.len = self.maxSize
 		self.buffer.append(transition)
+
+

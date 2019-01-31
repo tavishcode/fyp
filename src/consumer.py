@@ -7,26 +7,28 @@
         q: a queue of events receieved by a node
         
 """
+from eventlist import *
+
 class Consumer:
-    def __init__(self, name, gateway):
+    def __init__(self, name, gateway, q):
         self.name = name
         self.gateway = gateway
-        self.q = []
+        self.q = q
         self.time_of_next_request = 0
 
     def execute(self):
         """Call next event in consumer q"""
-        event = self.q.pop(0)
-        if event['type'] == 'REQ':
-            self.request(event['time'], event['pkt'])
-        elif event['type'] == 'REC':
-            self.receive(event['time'], event['pkt'], event['src'])
+        event = self.q.popfront()
+        assert(event.actor_name == self.name)
+        if event.func == 'REQ':
+            self.request(event.time, event.pkt)
+        elif event.func == 'REC':
+            self.receive(event.time, event.pkt, event.src)
 
     def request(self, time, pkt):
         """Add receieve event for an interest packet to gateway"""
         # print(self.name + ' requests ' + pkt.name)
-        self.gateway.q.append({'time': time + 0.1, 'type': 'REC', 'pkt': pkt, 'src': self})
-        self.gateway.q.sort(key=lambda x: x['time'])
+        self.q.add(Event(self.gateway.name, time+0.1, 'REC', pkt, self))
 
     def receive(self, time, pkt, src):
         """Log information for receievd data packet"""
