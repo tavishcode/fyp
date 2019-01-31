@@ -20,8 +20,6 @@ class MemoryBuffer:
 		count = min(count, self.len)
 		batch = random.sample(self.buffer, count)
 
-
-
 		s_arr = np.float32([arr[0] for arr in batch])
 		a_arr = np.float32([arr[1] for arr in batch])
 		r_arr = np.float32([arr[2] for arr in batch])
@@ -46,5 +44,5 @@ class MemoryBuffer:
 		if self.len > self.maxSize:
 			self.len = self.maxSize
 		self.buffer.append(transition)
-		# print('added to ram')
-		# print(self.buffer[-1])
+
+

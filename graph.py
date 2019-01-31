@@ -19,6 +19,7 @@ import random
 """
 class Graph:
     def __init__(self, cache_size, num_content_types, grid_rows, grid_cols, policy, q):
+
         """Creates routers and sets node links in adj_mtx"""
         self.routers = []
         self.num_routers = grid_rows * grid_cols
@@ -27,6 +28,7 @@ class Graph:
         for i in range(0, self.num_routers):
             name = 'r' + str(i)
             self.routers.append(Router(cache_size, num_content_types, name, policy, q)) 
+
 
         # set adjacency matrix 
         self.adj_mtx = []

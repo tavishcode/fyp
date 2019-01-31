@@ -47,6 +47,7 @@ class Trainer:
 			self.target_critic = model.LSTMCritic(self.state_dim, self.action_dim)
 			self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),LEARNING_RATE)
 
+
 		utils.hard_update(self.target_actor, self.actor)
 		utils.hard_update(self.target_critic, self.critic)
 
@@ -96,6 +97,7 @@ class Trainer:
 		# Use target actor exploitation policy here for loss evaluation
 		a2 = self.target_actor.forward(s2).detach()
 
+
 		next_val = torch.squeeze(self.target_critic.forward(s2, a2).detach())
 		# y_exp = r + gamma*Q'( s2, pi'(s2))
 		y_expected = r1 + GAMMA*next_val
@@ -123,6 +125,7 @@ class Trainer:
 		# self.iter += 1
 
 	def save_models(self, s):
+
 		"""
 		saves the target actor and critic models
 		:param episode_count: the count of episodes iterated
@@ -133,6 +136,7 @@ class Trainer:
 		print('Models saved successfully')
 
 	def load_models(self, s):
+
 		"""
 		loads the target actor and critic models, and copies them onto actor and critic models
 		:param episode: the count of episodes iterated (used to find the file name)
@@ -140,6 +144,7 @@ class Trainer:
 		"""
 		self.actor.load_state_dict(torch.load('Models_' + s + '_actor.pt'))
 		self.critic.load_state_dict(torch.load('Models_' + s + '_critic.pt'))
+
 		utils.hard_update(self.target_actor, self.actor)
 		utils.hard_update(self.target_critic, self.critic)
 		print('Models loaded succesfully')
