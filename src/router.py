@@ -1,6 +1,9 @@
 import sys
 sys.path.insert(0, './src')
+
 from contentstore import *
+
+
 from packet import Packet
 from eventlist import *
 
@@ -24,10 +27,15 @@ class Router:
             self.contentstore = LfuContentStore(cache_size)
         elif policy == 'ddpg':
             self.contentstore = DdpgContentStore(cache_size, num_content_types)
+
         elif policy == 'gru':
             self.contentstore = GruContentStore(cache_size, num_content_types)
         elif policy == 'lookback':
             self.contentstore = LookbackContentStore(cache_size, num_content_types)
+
+
+        elif policy == 'dlcpp':
+            self.contentstore = DlcppContentStore(cache_size, num_content_types)
 
         self.FIB = {} 
         self.PIT = {} 
