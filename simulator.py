@@ -118,9 +118,9 @@ class Simulator:
         total = sum([1/(n + self.M_Q)**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])
         self.zipf_weights = [1/(k + self.M_Q)**self.ZIPF_S/total for k in range(1,self.NUM_CONTENT_TYPES+1)]
         self.zipf_set = [random.sample(self.zipf_weights, len(self.zipf_weights)) for i in range(self.NUM_CYCLES)]
+
         # print(self.content_types)
         # print(self.zipf_weights)
-
     
     def get_next_actor(self):
         """Returns next actor (node) to execute event for (event with min value for time)"""
@@ -160,7 +160,7 @@ class Simulator:
             self.set_next_content_request(consumer)
         actor = self.get_next_actor()
         while self.curr_time < self.end_time:
-            print(self.curr_time)
+            # print(self.curr_time)
             if self.curr_time == 0 and self.prev_cache_update == 0:
                # first run of algorithm (no prior training)
                pass
@@ -173,7 +173,6 @@ class Simulator:
             if self.curr_time - self.prev_zipf_update > self.ZIPF_UPDATE_INTERVAL:
                 self.prev_zipf_update = self.curr_time
                 self.zipf_cycle += 1
-                
             actor.execute()
             actor = self.get_next_actor()
             
@@ -191,27 +190,21 @@ if __name__ == "__main__":
         request_rate=1,
         zipf_s=0.7,
         m_q=0.7,
-        num_cycles=4,
+        num_cycles=3,
         zipf_update_interval=50000, 
-        cache_update_interval=1000,
+        cache_update_interval=500,
         grid_rows=1, 
         grid_cols=1, 
-        cache_ratio=0.2, 
+        cache_ratio=0.01, 
         policy='gru', 
         rand_seed = RAND_SEED
     )
     sim.run()
 
-    # avg_hits = 0
-
-    # for router in sim.net_core.routers:
-    #     total = router.contentstore.hits + router.contentstore.misses
-    #     if total:
-    #         avg_hits += (router.contentstore.hits/total)
-    
-    # print(avg_hits/9)
-
-        
+    for router in sim.net_core.routers:
+        total = router.contentstore.hits + router.contentstore.misses
+        if total:
+            print(router.contentstore.hits/total)        
 
     """Print requests per timestep"""
 

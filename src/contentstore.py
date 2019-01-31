@@ -247,9 +247,6 @@ class GruContentStore(ContentStore):
             self.history[1] = self.history[2]
             self.history[2] = [[i,0] for i in range(self.num_content_types)]
         
-        self.data = np.zeros([self.MINI_BATCH_SIZE, self.NUM_CONTENT_TYPES, self.timesteps])
-        self.labels = np.zeros([self.NUM_CONTENT_TYPES*self.MINBATCH_SIZE])
-
 """DDPG Cache Policy with Bootstrap"""
 class DdpgContentStore(ContentStore):
     def __init__(self, size, num_content_types):
@@ -320,7 +317,7 @@ class DdpgContentStore(ContentStore):
 
             reward = self.temp_hits/temp_reqs
             self.rewards.append(reward)
-            print('reward ' + str(reward))
+            # print('reward ' + str(reward))
             new_state = []
             for c in range(self.NUM_CONTENT_TYPES):
                 new_state.append(0)
