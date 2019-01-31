@@ -5,6 +5,7 @@ from consumer import Consumer
 from producer import Producer
 from graph import Graph
 from packet import Packet
+from test import *
 import random
 import math
 import numpy as np
@@ -52,7 +53,7 @@ class Simulator:
         self.REQUEST_RATE = 1 # 1 req/s
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)
-        self.CACHE_UPDATE_INTERVAL = 1e2 
+        self.CACHE_UPDATE_INTERVAL = 1e1
         self.ZIPF_UPDATE_INTERVAL = 5e4
         self.RAND_SEED = rand_seed
         
@@ -167,7 +168,7 @@ if __name__ == "__main__":
         grid_rows=1, 
         grid_cols=1, 
         cache_ratio=0.1,
-        policy='fifo', 
+        policy='dlcpp', 
         rand_seed=RAND_SEED
     )
     sim.run()

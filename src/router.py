@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, './src')
-from contentstore import FifoContentStore, LruContentStore, LfuContentStore, DdpgContentStore
+from contentstore import FifoContentStore, LruContentStore, LfuContentStore, DdpgContentStore, DlcppContentStore
 from packet import Packet
 
 """ A CCN Router Node
@@ -23,6 +23,8 @@ class Router:
             self.contentstore = LfuContentStore(cache_size)
         elif policy == 'ddpg':
             self.contentstore = DdpgContentStore(cache_size, num_content_types)
+        elif policy == 'dlcpp':
+            self.contentstore = DlcppContentStore(cache_size, num_content_types)
         self.FIB = {} 
         self.PIT = {} 
         self.name = name
