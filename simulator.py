@@ -117,7 +117,6 @@ class Simulator:
 
     def get_next_actor(self):
         """Returns next actor (node) to execute event for (event with min value for time)"""
-        arr = self.consumers + self.producers + self.net_core.routers
         min_time = None
         actor = None
         actor_name, min_time = self.q.peek()
