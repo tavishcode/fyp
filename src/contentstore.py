@@ -14,6 +14,7 @@ from ddpg_cache_buffer import MemoryBuffer
 
 """---------------"""
 
+
 """ Abstract Class for defining Cache Policies.
 
     Attributes: 
@@ -53,6 +54,11 @@ class FifoContentStore(ContentStore):
         self.num_content_types = num_content_types
         self.store = OrderedDict()
 
+    def reset_req_hist(self):
+        content_types = ['content' + str(i) for i in range(self.num_content_types)]
+        counts = [0 for content in range(self.num_content_types)]
+        self.req_hist = OrderedDict(zip(content_types, counts))
+
     def add(self, item):
         if self.size:
             if(len(self.store) == self.size):
@@ -84,6 +90,13 @@ class LruContentStore(ContentStore):
             return cached_item
         except:
             return None
+
+    def get(self, item_name):
+        item = self.get_helper(item_name)
+        if item != None:
+            self.hits += 1
+        else:
+            self.misses += 1
 
 """Least Frequently Used Cache Policy"""
 class LfuContentStore(ContentStore):
@@ -234,6 +247,8 @@ class GruContentStore(ContentStore):
             self.history[1] = self.history[2]
             self.history[2] = [[i,0] for i in range(self.num_content_types)]
         
+        self.data = np.zeros([self.MINI_BATCH_SIZE, self.NUM_CONTENT_TYPES, self.timesteps])
+        self.labels = np.zeros([self.NUM_CONTENT_TYPES*self.MINBATCH_SIZE])
 
 """DDPG Cache Policy with Bootstrap"""
 class DdpgContentStore(ContentStore):

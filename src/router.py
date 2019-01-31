@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, './src')
 from contentstore import *
+
 from packet import Packet
 from eventlist import *
 
@@ -16,6 +17,7 @@ from eventlist import *
 """
 class Router:
     def __init__(self, cache_size, num_content_types, name, policy, q):
+
         if policy == 'fifo':
             self.contentstore = FifoContentStore(cache_size, num_content_types)
         elif policy == 'lru':
@@ -28,7 +30,7 @@ class Router:
             self.contentstore = GruContentStore(cache_size, num_content_types)
         elif policy == 'lookback':
             self.contentstore = LookbackContentStore(cache_size, num_content_types)
-            
+
         self.FIB = {} 
         self.PIT = {} 
         self.name = name
@@ -72,7 +74,7 @@ class Router:
                     self.q.add(Event(self.FIB[pkt.name].name, time+0.1, 'REC', pkt, self))
         else:
             # print(self.name + ' receives data packet for ' + pkt.name)
-            # print('adding to cs')
+
             self.contentstore.add(pkt)
             for ix, val in enumerate(self.PIT[pkt.name]):
                 node, hop_count = val
