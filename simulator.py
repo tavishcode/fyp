@@ -54,6 +54,8 @@ class Simulator:
                 end_time, 
                 request_rate,
                 zipf_s,
+                m_q,
+                num_cycles,
                 zipf_update_interval, 
                 cache_update_interval,
                 grid_rows, grid_cols, 
@@ -62,6 +64,8 @@ class Simulator:
                 rand_seed = 123):
 
         self.ZIPF_S = zipf_s
+        self.M_Q = m_q
+        self.NUM_CYCLES = num_cycles
         self.REQUEST_RATE = request_rate
         self.NUM_CONTENT_TYPES = num_producers
         self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)
@@ -73,6 +77,7 @@ class Simulator:
         random.seed(self.RAND_SEED)
         np.random.seed(self.RAND_SEED)
 
+        self.zipf_cycle = 0
         self.prev_cache_update = 0
         self.prev_zipf_update = 0
         self.curr_time = 0 # continuously increasing time
@@ -109,9 +114,10 @@ class Simulator:
         self.content_types = ["content" + str(i) for i in range(num_producers)]
         
         # generate probability distribution
-        total = sum([1/n**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])
-        self.zipf_weights = [(1/k**self.ZIPF_S)/total for k in range(1,self.NUM_CONTENT_TYPES+1)]
-        random.shuffle(self.zipf_weights)
+        total = sum([1/(n + self.M_Q)**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])
+        self.zipf_weights = [1/(k + self.M_Q)**self.ZIPF_S/total for k in range(1,self.NUM_CONTENT_TYPES+1)]
+        self.zipf_set = [random.sample(self.zipf_weights, len(self.zipf_weights)) for i in range(self.NUM_CYCLES)]
+
         # print(self.content_types)
         # print(self.zipf_weights)
 
@@ -141,7 +147,7 @@ class Simulator:
                 consumer.name,
                 consumer.time_of_next_request,
                 'REQ',
-                Packet(np.random.choice(self.content_types, 1, p=self.zipf_weights)[0]),
+                Packet(np.random.choice(self.content_types, 1, p=self.zipf_set[self.zipf_cycle % self.NUM_CYCLES])[0]),
                 None
         ))
         consumer.time_of_next_request += np.random.exponential(1/self.REQUEST_RATE)
@@ -165,9 +171,8 @@ class Simulator:
                     router.contentstore.update_state()
             if self.curr_time - self.prev_zipf_update > self.ZIPF_UPDATE_INTERVAL:
                 self.prev_zipf_update = self.curr_time
-                random.shuffle(self.zipf_weights)
-                # print(self.content_types)
-                # print(self.zipf_weights)
+                self.zipf_cycle += 1
+                
             actor.execute()
             actor = self.get_next_actor()
             
@@ -183,7 +188,9 @@ if __name__ == "__main__":
         num_producers=50000, 
         end_time=500000, 
         request_rate=1,
-        zipf_s=0.9,
+        zipf_s=0.7,
+        m_q=0.7,
+        num_cycles=4,
         zipf_update_interval=50000, 
         cache_update_interval=1000,
         grid_rows=1, 
