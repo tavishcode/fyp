@@ -5,6 +5,8 @@ import numpy as np
 import csv
 sys.path.insert(0, './ddpg_cache')
 sys.path.insert(0,'./gru')
+sys.path.insert(0, './dlcpp_cache')
+from dlcpp_trainer import DlcppTrainer
 from grum2m import GruEncoderDecoder
 
 """DDPG-RL Imports"""
@@ -371,3 +373,56 @@ class DdpgContentStore(ContentStore):
             print(self.num_updates)
         if self.num_updates == self.bootstrap_period:
             self.trainer.load_models(1)
+
+
+class DlcppContentStore(ContentStore):
+    def __init__(self, size, num_content_types):
+        super().__init__(size)
+
+        self.store = OrderedDict() 
+        self.prev_reqs = defaultdict(int)
+        self.curr_reqs = defaultdict(int)
+        self.NUM_CONTENT_TYPES = num_content_types
+        self.num_updates = 0
+        self.BOOTSTRAPPING = True
+        self.bootstrap = LfuContentStore(size)
+        self.trainer = DlcppTrainer(self.NUM_CONTENT_TYPES,training=False)
+        self.popularity_table = defaultdict(int)
+
+    # def get(self, item_name):
+    #     """Wrapper function for get_helper which includes hit/miss statistic updates"""
+    #     item = self.get_helper(item_name)
+    #     if item != None and not self.BOOTSTRAPPING:
+    #         self.hits += 1
+    #     elif not self.BOOTSTRAPPING:
+    #         self.misses += 1
+    #     else: # use bootstrap
+    #         item = self.bootstrap.get(item_name)
+    #         self.hits = self.bootstrap.hits
+    #         self.misses = self.bootstrap.misses
+    #     return item
+
+    def add(self, item): 
+        if self.BOOTSTRAPPING:
+            self.bootstrap.add(item)
+    
+    def get_helper(self, item):
+        try:
+            self.curr_reqs[item.name] += 1
+            return self.store[item.name]
+        except:
+            return None
+    
+    
+    def update_state(self):
+        """Called every CACHE_UPDATE_INTERVAL"""
+        #TODO get latest popularity rankings
+        # self.get_latest_rankings()
+        score = self.trainer.evaluate(self.curr_reqs,self.prev_reqs)
+        print(score)
+        self.prev_reqs = self.curr_reqs
+        self.curr_reqs = defaultdict(int)
+
+    def get_latest_rankings(self):
+        self.popularity_table = self.trainer.updated_popularity(self.curr_reqs)
+        print(self.popularity_table)
