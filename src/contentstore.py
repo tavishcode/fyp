@@ -91,13 +91,6 @@ class LruContentStore(ContentStore):
         except:
             return None
 
-    def get(self, item_name):
-        item = self.get_helper(item_name)
-        if item != None:
-            self.hits += 1
-        else:
-            self.misses += 1
-
 """Least Frequently Used Cache Policy"""
 class LfuContentStore(ContentStore):
     def __init__(self, size):
@@ -157,7 +150,6 @@ class LookbackContentStore(ContentStore):
         self.timestep_hits = 0 # reset hit calc for next timestep
         self. timestep_misses = 0 # reset miss calc for next timestep
 
-
 """GRU Cache Policy"""
 class GruContentStore(ContentStore):
     def __init__(self, size, num_content_types):
@@ -169,6 +161,7 @@ class GruContentStore(ContentStore):
         self.gen_ranking = dict([(i, 0) for i in range(self.num_content_types)]) # dict for contant lookup of ranking
         self.cache_ranking = [] # list of (name, score) pairs cache in descending order of popularity
         self.history = []
+        self.content_ids = None
         self.encoder_input = None
         self.decoder_input = None
         self.decoder_output = None
@@ -222,14 +215,24 @@ class GruContentStore(ContentStore):
 
     def predict(self):
         normalized_history = self.normalize_history()
-        normalized_history = np.array(normalized_history).reshape(self.num_content_types, self.timesteps, 1)
+
+        normalized_history = np.array(normalized_history).reshape(self.num_content_types, self.timesteps)
+        self.content_ids = np.where(normalized_history.any(axis=1))[0]
+        normalized_history = normalized_history[self.content_ids]
+        normalized_history = normalized_history.reshape(-1, self.timesteps, 1)
+  
         self.encoder_input = normalized_history
-        self.decoder_input = self.encoder_input[:,-1,:].reshape(self.num_content_types, 1, 1)
+        self.decoder_input = self.encoder_input[:,-1,:].reshape(-1, 1, 1)
         return self.model.predict(self.encoder_input)
 
     def train(self):
         normalized_history = self.normalize_history()
-        self.decoder_output = np.array(normalized_history[-1]).reshape(self.num_content_types, 1, 1)
+
+        normalized_history = np.array(normalized_history).reshape(self.num_content_types, self.timesteps)
+        normalized_history = normalized_history[self.content_ids]
+        normalized_history = normalized_history.reshape(-1, self.timesteps, 1)
+
+        self.decoder_output = normalized_history[:,-1,:].reshape(-1, 1, 1)
         self.model.train(self.encoder_input, self.decoder_input, self.decoder_output)
 
     def update_state(self):
@@ -239,10 +242,10 @@ class GruContentStore(ContentStore):
             if self.update_count > 3:
                 self.train()
             preds = self.predict().flatten()
-            for i,v in enumerate(preds):
+
+            for i,v in zip(self.content_ids, preds):
                 self.gen_ranking[i] = v
-            # print(self.gen_ranking)
-            # print(self.gen_ranking)
+           
             self.history[0] = self.history[1]
             self.history[1] = self.history[2]
             self.history[2] = [[i,0] for i in range(self.num_content_types)]

@@ -73,11 +73,12 @@ class Simulator:
         self.CACHE_UPDATE_INTERVAL = cache_update_interval
         self.ZIPF_UPDATE_INTERVAL = zipf_update_interval
         self.RAND_SEED = rand_seed
-        self.q = EventList()
 
         random.seed(self.RAND_SEED)
         np.random.seed(self.RAND_SEED)
 
+        self.history = []
+        self.q = EventList()
         self.zipf_cycle = 0
         self.prev_cache_update = 0
         self.prev_zipf_update = 0
@@ -88,6 +89,14 @@ class Simulator:
         self.producers = []
        
         num_routers = grid_rows * grid_cols
+
+        # populate content
+        self.content_types = ["content" + str(i) for i in range(num_producers)]
+        
+        # generate probability distribution
+        total = sum([1/(n + self.M_Q)**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])
+        self.zipf_weights = [1/(k + self.M_Q)**self.ZIPF_S/total for k in range(1,self.NUM_CONTENT_TYPES+1)]
+        self.zipf_set = [random.sample(self.zipf_weights, len(self.zipf_weights)) for i in range(self.NUM_CYCLES)]
 
         self.net_core = Graph(self.CACHE_SIZE, self.NUM_CONTENT_TYPES, grid_rows, grid_cols, policy, self.q)
 
@@ -110,17 +119,6 @@ class Simulator:
 
         # set FIBs in routers
         self.net_core.set_routes_to_producers(self.producers)
-
-        # populate content
-        self.content_types = ["content" + str(i) for i in range(num_producers)]
-        
-        # generate probability distribution
-        total = sum([1/(n + self.M_Q)**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])
-        self.zipf_weights = [1/(k + self.M_Q)**self.ZIPF_S/total for k in range(1,self.NUM_CONTENT_TYPES+1)]
-        self.zipf_set = [random.sample(self.zipf_weights, len(self.zipf_weights)) for i in range(self.NUM_CYCLES)]
-
-        # print(self.content_types)
-        # print(self.zipf_weights)
     
     def get_next_actor(self):
         """Returns next actor (node) to execute event for (event with min value for time)"""
@@ -144,18 +142,22 @@ class Simulator:
 
     def set_next_content_request(self, consumer):
         """Append (time, req, packet) pair into consumer queue"""
+        content_name = self.rng.choice(self.content_types, 1, p=self.zipf_set[self.zipf_cycle % self.NUM_CYCLES])[0]
         self.q.add(Event(
                 consumer.name,
                 consumer.time_of_next_request,
                 'REQ',
-                Packet(np.random.choice(self.content_types, 1, p=self.zipf_set[self.zipf_cycle % self.NUM_CYCLES])[0]),
+                Packet(content_name),
                 None
         ))
-        consumer.time_of_next_request += np.random.exponential(1/self.REQUEST_RATE)
+        consumer.time_of_next_request += self.rng.exponential(1/self.REQUEST_RATE)
+        self.history.append(content_name)
 
     def run(self):
-        """Executes events for nodes
-        Calls content request waves after each event for NUM_REQUESTS_PER_CONSUMER waves"""
+
+        self.rng = np.random.RandomState(self.RAND_SEED)
+
+        """Executes events for nodes"""
         for consumer in self.consumers:
             self.set_next_content_request(consumer)
         actor = self.get_next_actor()
@@ -165,7 +167,7 @@ class Simulator:
                # first run of algorithm (no prior training)
                pass
             if self.curr_time - self.prev_cache_update > self.CACHE_UPDATE_INTERVAL:
-                print(self.curr_time)
+                # print(self.curr_time)
                 self.prev_cache_update = self.curr_time
                 # print('executing update')
                 for ix, router in enumerate(self.net_core.routers):
@@ -183,30 +185,60 @@ if __name__ == "__main__":
     
     """ Simulation Sample Scenario """
 
-    sim = Simulator(
-        num_consumers=1, 
-        num_producers=50000, 
-        end_time=500000, 
-        request_rate=1,
-        zipf_s=0.7,
-        m_q=0.7,
-        num_cycles=3,
-        zipf_update_interval=50000, 
-        cache_update_interval=500,
-        grid_rows=1, 
-        grid_cols=1, 
-        cache_ratio=0.01, 
-        policy='gru', 
-        rand_seed = RAND_SEED
-    )
-    sim.run()
+    for policy in ['gru','lru','lfu']:
+        sim = Simulator(
+            num_consumers=1, 
+            num_producers=50000, 
+            end_time=50000, 
+            request_rate=1,
+            zipf_s=0.7,
+            m_q=0.7,
+            num_cycles=3,
+            zipf_update_interval=50000, 
+            cache_update_interval=500,
+            grid_rows=1, 
+            grid_cols=1, 
+            cache_ratio=0.01, 
+            policy=policy, 
+            rand_seed = RAND_SEED
+        )
 
-    for router in sim.net_core.routers:
-        total = router.contentstore.hits + router.contentstore.misses
-        if total:
-            print(router.contentstore.hits/total)        
+        sim.run()
 
-    """Print requests per timestep"""
+        """Optimal Hit Rate (Theoretical Maximum)"""
+        
+        histories = []
+        start = 0
+        end = sim.ZIPF_UPDATE_INTERVAL
+        length = len(sim.history)
+
+        histories.append(sim.history[start:end])
+        start += sim.ZIPF_UPDATE_INTERVAL
+        end += sim.ZIPF_UPDATE_INTERVAL
+        while end < length:
+            histories.append(sim.history[start:end])
+            start += sim.ZIPF_UPDATE_INTERVAL
+            end += sim.ZIPF_UPDATE_INTERVAL
+
+        num_hits = 0
+
+        for i, history in enumerate(histories):
+            popular = ['content'+str(ix) for ix, v in sorted(enumerate(sim.zipf_set[i % sim.NUM_CYCLES]), key=lambda x: x[1], reverse = True)][:int(sim.CACHE_SIZE)]
+            for p in popular:
+                for h in history:
+                    if h == p:
+                        num_hits += 1
+        
+        print('optimal hit rate ', num_hits/length)
+        
+        """"""
+
+        for router in sim.net_core.routers:
+            total = router.contentstore.hits + router.contentstore.misses
+            if total:
+                print(router.contentstore.hits/total)        
+
+        """Print requests per timestep"""
 
     # print(sim.req_counts)
 
