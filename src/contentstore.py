@@ -3,12 +3,15 @@ from collections import OrderedDict, defaultdict
 import sys
 import numpy as np
 import csv
+import random
 sys.path.insert(0, './ddpg_cache')
 sys.path.insert(0,'./gru')
 sys.path.insert(0, './dlcpp_cache')
+sys.path.insert(0, './lstm_cache')
+
 from dlcpp_trainer import DlcppTrainer
 from grum2m import GruEncoderDecoder
-
+from lstm_cache import LstmTrainer
 """DDPG-RL Imports"""
 
 from ddpg_cache_train import Trainer as ddpg_trainer
@@ -426,3 +429,105 @@ class DlcppContentStore(ContentStore):
     def get_latest_rankings(self):
         self.popularity_table = self.trainer.updated_popularity(self.curr_reqs)
         print(self.popularity_table)
+
+class LstmContentStore(ContentStore):
+    def __init__(self, size, num_content_types):
+        super().__init__(size)
+        self.timesteps = 4
+        self.reqs_per_timestep = 10
+        self.num_content_types = num_content_types
+        self.trainer = LstmTrainer(self.timesteps, num_content_types)
+
+        self.store = {}
+        self.data = np.zeros([num_content_types, self.timesteps+1, 1])
+        self.curr_reqs = 0
+        
+    def add(self, item):
+            pass
+
+    def increment(self, item_name):
+        item_id = int(item_name.split("content")[1])
+        self.curr_reqs += 1
+        if self.curr_reqs == self.reqs_per_timestep:
+            self.curr_reqs = 0
+            self.data[:,:-1,:] = self.data[:,1:,:]
+            self.data[:,-1,:].fill(0)
+        self.data[item_id, self.timesteps, 0] += 1
+
+    def get_helper(self, item_name):
+        # print("Requesting " + item_name)
+        self.increment(item_name)
+        print(item_name in self.store)
+        try:
+            cached_item=self.store[item_name]
+            return cached_item
+        except:
+            return None
+
+    def update_state(self):
+        X = self.data[:,:-1,:]
+        y = self.data[:,-1:,:]
+        print("X: " + str(X.shape))
+        print("Y: " + str(y.shape))
+
+        pred= self.trainer.test(X).flatten()
+
+        ranks = [(i, pred[i]) for i in range(self.num_content_types)]
+        ranks.sort(key=lambda x: x[1], reverse = True)
+
+        self.store = {}
+        for i in range(self.size):
+            name="content" + str(ranks[i][0])
+            self.store[name] = Packet(name, is_interest=False)
+        print(self.store)
+        self.trainer.train(X, y)
+
+class ProbRlContentStore(ContentStore):
+    def __init__(self, size, num_content_types):
+        super().__init__(size)
+        self.store = {}
+        self.num_content_types = num_content_types
+        self.timesteps = 4
+        self.reqs_per_timestep = 200
+
+        self.curr_reqs = 0
+        self.history = np.zeros([num_content_types, self.timesteps])
+
+    def increment(self, item_name):
+        self.curr_reqs += 1
+        item_id = int(item_name.split("content")[1])
+        if self.curr_reqs == self.reqs_per_timestep:
+            self.curr_reqs = 0
+            self.history[:,:-1] = self.history[:,1:]
+            self.history[:,-1].fill(0)
+        self.history[item_id, -1] += 1
+
+    def get_helper(self, item_name):
+        self.increment(item_name)
+        try:
+            return self.store[item_name]
+        except:
+            return None   
+
+    def add(self, item):
+        if len(self.store) < self.size:
+            self.store[item.name] = item
+        else:
+            self.store[item.name] = item
+            names = []
+            weights = []
+            for item_name in self.store:
+                names.append(item_name)
+                item_id = int(item_name.split("content")[1])
+                row=self.history[item_id]
+                if row.any():
+                    # multipliers = np.array([0.04,0.06,0.08,0.1,0.13,0.17,0.19,0.22])
+                    multipliers = np.array([0.1,0.2,0.3,0.4])
+                    weights.append(1/(sum(row*multipliers)))
+                else:
+                    self.store.pop(item_name)
+                    self.store[item.name] = item
+                    return
+            
+            to_evict = random.choices(names, weights)[0]
+            self.store.pop(to_evict)
