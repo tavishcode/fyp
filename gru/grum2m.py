@@ -43,7 +43,7 @@ class GruEncoderDecoder:
         return decoded_seq
 
     def train(self, encoder_input, decoder_input, decoder_output):
-        self.model.fit([encoder_input, decoder_input], decoder_output, verbose=1)
+        self.model.fit([encoder_input, decoder_input], decoder_output, verbose=0)
 
 # np.random.seed(123)
 
