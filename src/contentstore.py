@@ -154,8 +154,8 @@ class LookbackContentStore(ContentStore):
 class GruContentStore(ContentStore):
     def __init__(self, size, num_content_types):
         super().__init__(size)
-        self.model = GruEncoderDecoder(timesteps=3, hidden_units=64, pred_steps=1)
-        self.timesteps = 3
+        self.model = GruEncoderDecoder(timesteps=5, hidden_units=64, pred_steps=1)
+        self.timesteps = 5
         self.store = {}
         self.num_content_types = num_content_types
         self.gen_ranking = dict([(i, 0) for i in range(self.num_content_types)]) # dict for contant lookup of ranking
@@ -166,7 +166,7 @@ class GruContentStore(ContentStore):
         self.decoder_input = None
         self.decoder_output = None
         for i in range(self.timesteps):
-            self.history.append([[i,0] for i in range(self.num_content_types)]) # [0,0], [1,0]
+            self.history.append([0 for i in range(self.num_content_types)])
         self.update_count = 0
 
     def add(self, item):
@@ -192,7 +192,6 @@ class GruContentStore(ContentStore):
     def normalize_history(self):
         normalized_history = []
         for hist in self.history:
-            hist = [j for i,j in hist]
             total = sum(hist)
             if total > 0:
                 norm_hist = [i/total for i in hist]
@@ -205,9 +204,9 @@ class GruContentStore(ContentStore):
         try:
             ix = int(item_name[7:])
             if self.update_count < self.timesteps:
-                self.history[self.update_count][ix][1] += 1 # update popularity count
+                self.history[self.update_count][ix] += 1 # update popularity count
             else:
-                self.history[-1][ix][1] += 1 # update popularity count
+                self.history[-1][ix] += 1 # update popularity count
             cached_item = self.store[item_name]
             return cached_item
         except:
@@ -238,7 +237,6 @@ class GruContentStore(ContentStore):
     def update_state(self):
         self.update_count += 1
         if self.update_count >= 3:
-            # print('updating ranks')
             if self.update_count > 3:
                 self.train()
             preds = self.predict().flatten()
@@ -248,7 +246,7 @@ class GruContentStore(ContentStore):
            
             self.history[0] = self.history[1]
             self.history[1] = self.history[2]
-            self.history[2] = [[i,0] for i in range(self.num_content_types)]
+            self.history[2] = [0 for i in range(self.num_content_types)]
         
 """DDPG Cache Policy with Bootstrap"""
 class DdpgContentStore(ContentStore):
