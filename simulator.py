@@ -51,7 +51,7 @@ class Simulator:
 
     def __init__(self, 
                 num_consumers, 
-                num_producers, 
+                num_content_types, 
                 end_time, 
                 request_rate,
                 zipf_s,
@@ -64,45 +64,59 @@ class Simulator:
                 policy, 
                 rand_seed = 123):
 
-        self.ZIPF_S = zipf_s
-        self.M_Q = m_q
-        self.NUM_CYCLES = num_cycles
-        self.REQUEST_RATE = request_rate
-        self.NUM_CONTENT_TYPES = num_producers
-        self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)
-        self.CACHE_UPDATE_INTERVAL = cache_update_interval
-        self.ZIPF_UPDATE_INTERVAL = zipf_update_interval
+        self.ZIPF_S = zipf_s                                            # zipf skew
+        self.M_Q = m_q                                                  # mandelbrot q
+        self.NUM_CYCLES = num_cycles                                    # number of zipf cycles
+        self.REQUEST_RATE = request_rate                                # requests/s for each consumer
+        self.NUM_CONTENT_TYPES = num_content_types                      # number of unique content types
+        self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)     
+        self.CACHE_UPDATE_INTERVAL = cache_update_interval              # interval to call update_state() on caches
+        self.ZIPF_UPDATE_INTERVAL = zipf_update_interval                # interval to switch zipf distributions
         self.RAND_SEED = rand_seed
+        self.policy = policy
 
         random.seed(self.RAND_SEED)
         np.random.seed(self.RAND_SEED)
 
-        self.history = []
-        self.q = EventList()
-        self.zipf_cycle = 0
-        self.prev_cache_update = 0
+        self.rng = np.random.RandomState(self.RAND_SEED)                # random number generator responsible for all non third-party randomizations
+
+        self.history = []                                               # history of requests throughout simulation
+        for i in range(self.NUM_CYCLES):
+            self.history.append([])
+
+        self.q = EventList()                                            # global queue of events
+        self.zipf_cycle = 0                                             # counter to switch zipf distributions
+        self.prev_cache_update = 0                                      
         self.prev_zipf_update = 0
-        self.curr_time = 0 # continuously increasing time
+        self.curr_time = 0                                              # continuously increasing time
         self.end_time = end_time
-        self.num_request_waves = 0
         self.consumers = []
         self.producers = []
        
-        num_routers = grid_rows * grid_cols
+        num_routers = grid_rows * grid_cols                             # number of total routers in topology
 
         # populate content
-        self.content_types = ["content" + str(i) for i in range(num_producers)]
+        self.content_types = ["content" + str(i) \
+            for i in range(self.NUM_CONTENT_TYPES)] 
         
-        # generate probability distribution
-        total = sum([1/(n + self.M_Q)**self.ZIPF_S for n in range(1, self.NUM_CONTENT_TYPES+1)])
-        self.zipf_weights = [1/(k + self.M_Q)**self.ZIPF_S/total for k in range(1,self.NUM_CONTENT_TYPES+1)]
-        self.zipf_set = [random.sample(self.zipf_weights, len(self.zipf_weights)) for i in range(self.NUM_CYCLES)]
+        # generate probability distribution with seasonal cycles
+        total = sum([1/(n + self.M_Q)**self.ZIPF_S \
+            for n in range(1, self.NUM_CONTENT_TYPES+1)])
+        self.zipf_weights = [1/(k + self.M_Q)**self.ZIPF_S/total \
+            for k in range(1,self.NUM_CONTENT_TYPES+1)]
+        self.zipf_set = [self.rng.permutation(self.zipf_weights) \
+            for i in range(self.NUM_CYCLES)]
 
-        self.net_core = Graph(self.CACHE_SIZE, self.NUM_CONTENT_TYPES, grid_rows, grid_cols, policy, self.q)
-
-        self.req_counts = []
-        for r in self.net_core.routers:
-            self.req_counts.append([])
+        # initialize routers
+        self.net_core = Graph(
+                            self.CACHE_SIZE, 
+                            self.NUM_CONTENT_TYPES, 
+                            grid_rows, 
+                            grid_cols, 
+                            self.policy, 
+                            self.q, 
+                            self.rng
+                        )
 
         # assign consumers and producers with gateway routers
         for i in range(num_consumers):
@@ -111,7 +125,7 @@ class Simulator:
                 Consumer("c" + str(i), r, self.q)
             )
 
-        for i in range(num_producers):
+        for i in range(num_content_types):
             r = self.net_core.get_random_router()
             self.producers.append(
                 Producer("p" + str(i), r, "content" + str(i), self.q)
@@ -124,25 +138,31 @@ class Simulator:
         """Returns next actor (node) to execute event for (event with min value for time)"""
         min_time = None
         actor = None
-        actor_name, min_time = self.q.peek()
-        if actor_name != None:
-            actor_ix = int(actor_name[1:])
+        actor_name, min_time = self.q.peek()                    # get next event from queue
+        if actor_name != None:                                  # if q is not empty
+            actor_ix = int(actor_name[1:])      
             actor_type = actor_name[0]
-            if actor_type == 'c':
+            if actor_type == 'c':                               # if consumer
                 actor = self.consumers[actor_ix]
-                self.set_next_content_request(actor)
-            elif actor_type == 'r':
+                self.set_next_content_request(actor)            # schedule next consumer request,
+                                                                # ensures queue is never empty and simulation
+                                                                # will run until end time
+
+            elif actor_type == 'r':                             # if router
                 actor = self.net_core.routers[actor_ix]
-            else:
+            else:                                               # if producer
                 actor = self.producers[actor_ix]
-            assert(self.curr_time <= min_time)
+            assert(self.curr_time <= min_time)                  # events cannot occur in the past
         self.curr_time = min_time
-        # print(self.curr_time)
         return actor
 
     def set_next_content_request(self, consumer):
         """Append (time, req, packet) pair into consumer queue"""
-        content_name = self.rng.choice(self.content_types, 1, p=self.zipf_set[self.zipf_cycle % self.NUM_CYCLES])[0]
+        content_name = self.rng.choice(
+                                        self.content_types, 
+                                        1, 
+                                        p=self.zipf_set[self.zipf_cycle % self.NUM_CYCLES]
+                                    )[0]
         self.q.add(Event(
                 consumer.name,
                 consumer.time_of_next_request,
@@ -151,25 +171,17 @@ class Simulator:
                 None
         ))
         consumer.time_of_next_request += self.rng.exponential(1/self.REQUEST_RATE)
-        self.history.append(content_name)
+        self.history[self.zipf_cycle % self.NUM_CYCLES].append(content_name) # update sim history
 
     def run(self):
-
-        self.rng = np.random.RandomState(self.RAND_SEED)
-
         """Executes events for nodes"""
-        for consumer in self.consumers:
+        for consumer in self.consumers:                 # init simulation with a content request from all consumers
             self.set_next_content_request(consumer)
         actor = self.get_next_actor()
         while self.curr_time < self.end_time:
             # print(self.curr_time)
-            if self.curr_time == 0 and self.prev_cache_update == 0:
-               # first run of algorithm (no prior training)
-               pass
             if self.curr_time - self.prev_cache_update > self.CACHE_UPDATE_INTERVAL:
-                # print(self.curr_time)
                 self.prev_cache_update = self.curr_time
-                # print('executing update')
                 for ix, router in enumerate(self.net_core.routers):
                     router.contentstore.update_state()
             if self.curr_time - self.prev_zipf_update > self.ZIPF_UPDATE_INTERVAL:
@@ -185,62 +197,50 @@ if __name__ == "__main__":
     
     """ Simulation Sample Scenario """
 
-    for policy in ['gru','lru','lfu']:
+    for policy in ['lru','lfu','gru']:
         sim = Simulator(
             num_consumers=1, 
-            num_producers=50000, 
-            end_time=50000, 
+            num_content_types=50000, 
+            end_time=500, 
             request_rate=1,
             zipf_s=0.7,
             m_q=0.7,
             num_cycles=3,
-            zipf_update_interval=50000, 
-            cache_update_interval=500,
+            zipf_update_interval=100000, 
+            cache_update_interval=100,
             grid_rows=1, 
             grid_cols=1, 
-            cache_ratio=0.01, 
+            cache_ratio=0.001, 
             policy=policy, 
-            rand_seed = RAND_SEED
+            rand_seed=RAND_SEED
         )
 
         sim.run()
 
         """Optimal Hit Rate (Theoretical Maximum)"""
         
-        histories = []
-        start = 0
-        end = sim.ZIPF_UPDATE_INTERVAL
-        length = len(sim.history)
-
-        histories.append(sim.history[start:end])
-        start += sim.ZIPF_UPDATE_INTERVAL
-        end += sim.ZIPF_UPDATE_INTERVAL
-        while end < length:
-            histories.append(sim.history[start:end])
-            start += sim.ZIPF_UPDATE_INTERVAL
-            end += sim.ZIPF_UPDATE_INTERVAL
-
+        num_requests = sum([len(hist) for hist in sim.history])
         num_hits = 0
-
-        for i, history in enumerate(histories):
-            popular = ['content'+str(ix) for ix, v in sorted(enumerate(sim.zipf_set[i % sim.NUM_CYCLES]), key=lambda x: x[1], reverse = True)][:int(sim.CACHE_SIZE)]
-            for p in popular:
-                for h in history:
-                    if h == p:
+        for i, hist in enumerate(sim.history):
+            opt_contents = sorted(enumerate(sim.zipf_set[i]), key = lambda x: x[1], reverse=True)
+            opt_cache = ['content' + str(ix) for ix, pop in opt_contents[:int(sim.CACHE_SIZE)]]
+            for o in opt_cache:
+                for h in hist:
+                    if h == o:
                         num_hits += 1
-        
-        print('optimal hit rate ', num_hits/length)
+        print('Optimal Hit Rate: ', num_hits/num_requests)
         
         """"""
+
+        """ Policy Hit Rates """
 
         for router in sim.net_core.routers:
             total = router.contentstore.hits + router.contentstore.misses
             if total:
-                print(router.contentstore.hits/total)        
+                print(router.name + ' ' + sim.policy + ' Hit Rate: ' + str(router.contentstore.hits/total))     
 
-        """Print requests per timestep"""
+        """"""   
 
-    # print(sim.req_counts)
 
     """Plot distribution of requests"""
     
