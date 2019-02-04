@@ -3,7 +3,6 @@ from collections import OrderedDict, defaultdict
 import sys
 import numpy as np
 import csv
-import random
 sys.path.insert(0, './ddpg_cache')
 sys.path.insert(0,'./gru')
 sys.path.insert(0, './dlcpp_cache')
@@ -11,13 +10,9 @@ sys.path.insert(0, './lstm_cache')
 
 from dlcpp_trainer import DlcppTrainer
 from grum2m import GruEncoderDecoder
-# from lstm_cache import LstmTrainer
-"""DDPG-RL Imports"""
-
+from lstm import LstmTrainer
 from ddpg_cache_train import Trainer as ddpg_trainer
 from ddpg_cache_buffer import MemoryBuffer
-
-"""---------------"""
 
 
 """ Abstract Class for defining Cache Policies.
@@ -159,45 +154,46 @@ class LookbackContentStore(ContentStore):
 class GruContentStore(ContentStore):
     def __init__(self, size, num_content_types):
         super().__init__(size)
-        self.model = GruEncoderDecoder(timesteps=3, hidden_units=64, pred_steps=1)
-        self.timesteps = 3
+        self.model = GruEncoderDecoder(timesteps=5, hidden_units=64, pred_steps=1)
+        self.timesteps = 5
         self.store = {}
         self.num_content_types = num_content_types
         self.gen_ranking = dict([(i, 0) for i in range(self.num_content_types)]) # dict for contant lookup of ranking
-        self.cache_ranking = [] # list of (name, score) pairs cache in descending order of popularity
         self.history = []
         self.content_ids = None
         self.encoder_input = None
         self.decoder_input = None
         self.decoder_output = None
         for i in range(self.timesteps):
-            self.history.append([[i,0] for i in range(self.num_content_types)]) # [0,0], [1,0]
+            self.history.append([0 for i in range(self.num_content_types)])
         self.update_count = 0
 
+    def get_min(self):
+        min_rank = None
+        min_ix = None
+        for c in self.store.keys():
+            ix = int(c[7:])
+            rank = self.gen_ranking[ix]
+            if min_rank == None or rank < min_rank:
+                min_rank = rank
+                min_ix = ix
+        return min_rank, min_ix
+
     def add(self, item):
-        # print('in add')
         if self.size:
             ix = int(item.name[7:])
             rank = self.gen_ranking[ix]
             if(len(self.store) == self.size):
-                # print(rank, self.cache_ranking[-1][-1])
-                if rank > self.cache_ranking[-1][-1]:
-                    # print('replaced')
-                    self.store.pop('content' + str(self.cache_ranking.pop(-1)[0]))
-                    self.cache_ranking.append([ix, rank])
-                    self.cache_ranking.sort(key = lambda x: x[1], reverse=True)
+                min_rank, min_ix = self.get_min()
+                if rank > min_rank:
+                    self.store.pop('content' + str(min_ix))
                     self.store[item.name] = item
-            else:
-                # print('inserted')
-                self.cache_ranking.append([ix, rank])
-                self.cache_ranking.sort(key = lambda x: x[1], reverse=True)
+            else:                
                 self.store[item.name] = item
-            # print(self.store)
 
     def normalize_history(self):
         normalized_history = []
         for hist in self.history:
-            hist = [j for i,j in hist]
             total = sum(hist)
             if total > 0:
                 norm_hist = [i/total for i in hist]
@@ -210,9 +206,9 @@ class GruContentStore(ContentStore):
         try:
             ix = int(item_name[7:])
             if self.update_count < self.timesteps:
-                self.history[self.update_count][ix][1] += 1 # update popularity count
+                self.history[self.update_count][ix] += 1 # update popularity count
             else:
-                self.history[-1][ix][1] += 1 # update popularity count
+                self.history[-1][ix] += 1 # update popularity count
             cached_item = self.store[item_name]
             return cached_item
         except:
@@ -243,17 +239,16 @@ class GruContentStore(ContentStore):
     def update_state(self):
         self.update_count += 1
         if self.update_count >= 3:
-            # print('updating ranks')
             if self.update_count > 3:
                 self.train()
             preds = self.predict().flatten()
 
             for i,v in zip(self.content_ids, preds):
                 self.gen_ranking[i] = v
-           
+
             self.history[0] = self.history[1]
             self.history[1] = self.history[2]
-            self.history[2] = [[i,0] for i in range(self.num_content_types)]
+            self.history[2] = [0 for i in range(self.num_content_types)]
         
 """DDPG Cache Policy with Bootstrap"""
 class DdpgContentStore(ContentStore):
@@ -380,6 +375,7 @@ class DdpgContentStore(ContentStore):
         if self.num_updates == self.bootstrap_period:
             self.trainer.load_models(1)
 
+"""DLCPP Cache Policy"""
 
 class DlcppContentStore(ContentStore):
     def __init__(self, size, num_content_types):
@@ -407,7 +403,7 @@ class DlcppContentStore(ContentStore):
                         if self.popularity_table[content] < rank:
                             self.store.pop(content)
                             self.store[item.name] = item
-                            print("replaced")
+                            # print("replaced")
                 except:
                     self.store.popitem()
                     self.store[item.name] = item
@@ -441,7 +437,9 @@ class DlcppContentStore(ContentStore):
 
     def get_latest_rankings(self):
         self.popularity_table = self.trainer.updated_popularity(self.curr_reqs)
-        # print(self.popularity_table)
+        print(self.popularity_table)
+
+"""LSTM Cache Policy"""
 
 class LstmContentStore(ContentStore):
     def __init__(self, size, num_content_types):
@@ -470,7 +468,7 @@ class LstmContentStore(ContentStore):
     def get_helper(self, item_name):
         # print("Requesting " + item_name)
         self.increment(item_name)
-        print(item_name in self.store)
+        # print(item_name in self.store)
         try:
             cached_item=self.store[item_name]
             return cached_item
@@ -480,8 +478,8 @@ class LstmContentStore(ContentStore):
     def update_state(self):
         X = self.data[:,:-1,:]
         y = self.data[:,-1:,:]
-        print("X: " + str(X.shape))
-        print("Y: " + str(y.shape))
+        # print("X: " + str(X.shape))
+        # print("Y: " + str(y.shape))
 
         pred= self.trainer.test(X).flatten()
 
@@ -492,8 +490,10 @@ class LstmContentStore(ContentStore):
         for i in range(self.size):
             name="content" + str(ranks[i][0])
             self.store[name] = Packet(name, is_interest=False)
-        print(self.store)
+        # print(self.store)
         self.trainer.train(X, y)
+
+"""Prob RL Cache Policy"""
 
 class ProbRlContentStore(ContentStore):
     def __init__(self, size, num_content_types):
@@ -532,7 +532,7 @@ class ProbRlContentStore(ContentStore):
             for item_name in self.store:
                 names.append(item_name)
                 item_id = int(item_name.split("content")[1])
-                row=self.history[item_id]
+                row = self.history[item_id]
                 if row.any():
                     # multipliers = np.array([0.04,0.06,0.08,0.1,0.13,0.17,0.19,0.22])
                     multipliers = np.array([0.1,0.2,0.3,0.4])
@@ -542,5 +542,5 @@ class ProbRlContentStore(ContentStore):
                     self.store[item.name] = item
                     return
             
-            to_evict = random.choices(names, weights)[0]
+            to_evict = np.random.choice(names, 1, weights)[0]
             self.store.pop(to_evict)

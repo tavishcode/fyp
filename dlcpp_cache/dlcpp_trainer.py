@@ -27,7 +27,7 @@ class DlcppTrainer:
         self.TRAINING = training
         if not self.TRAINING:
             self.model = self.load_trained_model('./dlcpp_cache/dlcpp_model.h5')
-        print(K.tensorflow_backend._get_available_gpus())
+        # print(K.tensorflow_backend._get_available_gpus())
         self.order = []
 
 
@@ -120,7 +120,7 @@ class DlcppTrainer:
                 probability = reqs/num_requests
                 true_labels.append(probability)
             except:
-                print("8888888888888888888888888888888888")
+                # print("8888888888888888888888888888888888")
                 true_labels.append(0)
                 # true_labels[i][0] = 1
             i += 1
@@ -135,15 +135,15 @@ class DlcppTrainer:
         # if not self.model:
         #     self.model = self.baseline_model()
         # else:
-        print("**********************")
+        # print("**********************")
         input_features = self.extract_features(prev_req_hist)
         true_labels = self.get_true_labels_probability(req_hist)
         # print(true_labels)
-        print("order",len(self.order))
-        print("input",input_features.shape)
-        print(true_labels)
+        # print("order",len(self.order))
+        # print("input",input_features.shape)
+        # print(true_labels)
         p.writerow(true_labels)
-        self.model.fit(input_features, true_labels, epochs=10, verbose=1)
+        self.model.fit(input_features, true_labels, epochs=10, verbose=0)
 
     def get_entropy_csv(self,req_prob):
         request_entropy_array = []
@@ -269,7 +269,7 @@ class DlcppTrainer:
 
 
     def report(self):
-        print(self.model.summary())
+        # print(self.model.summary())
         self.model.save('./dlcpp_cache/dlcpp_model.h5')
 
     def plot_metrics(self,loss,accuracy):
