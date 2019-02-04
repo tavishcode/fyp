@@ -30,7 +30,14 @@ class Router:
             self.contentstore = GruContentStore(cache_size, num_content_types)
         elif policy == 'lookback':
             self.contentstore = LookbackContentStore(cache_size, num_content_types)
-
+        elif policy == 'dlcpp':
+            self.contentstore = DlcppContentStore(cache_size, num_content_types)
+        elif policy == 'lstm':
+            self.contentstore = LstmContentStore(cache_size, num_content_types)
+        elif policy == 'probrl':
+            self.contentstore = ProbRlContentStore(cache_size, num_content_types) 
+        elif policy =='random':
+            self.contentstore = RandomContentStore(cache_size)
         self.FIB = {} 
         self.PIT = {} 
         self.name = name
