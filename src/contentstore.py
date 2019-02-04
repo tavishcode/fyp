@@ -99,7 +99,7 @@ class LfuContentStore(ContentStore):
     
     def add(self, item):
         if self.size:
-            if(len(self.store) == self.size):
+            if len(self.store) == self.size:
                 min_key = None
                 min_freq = None
                 for key in self.store.keys():
@@ -114,6 +114,24 @@ class LfuContentStore(ContentStore):
             cached_item = self.store[item_name][0]
             self.store[item_name][1] += 1
             return cached_item
+        except:
+            return None
+
+"""Random Cache Policy"""
+class RandomContentStore(ContentStore):
+    def __init__(self, size):
+        super().__init__(size)
+        self.store = {}
+
+    def add(self, item):
+        if self.size:
+            if len(self.store) == self.size:
+                self.store.pop(np.random.choice(list(self.store.keys())))
+            self.store[item.name] = item
+    
+    def get_helper(self, item_name):
+        try:
+            return self.store[item_name]
         except:
             return None
 

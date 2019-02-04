@@ -36,6 +36,8 @@ class Router:
             self.contentstore = LstmContentStore(cache_size, num_content_types)
         elif policy == 'probrl':
             self.contentstore = ProbRlContentStore(cache_size, num_content_types) 
+        elif policy =='random':
+            self.contentstore = RandomContentStore(cache_size)
         self.FIB = {} 
         self.PIT = {} 
         self.name = name
