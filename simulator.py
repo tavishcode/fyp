@@ -197,20 +197,20 @@ if __name__ == "__main__":
     
     """ Simulation Sample Scenario """
 
-    for policy in ['lookback','gru','lru','lfu']:
+    for policy in ['dlcpp']:
         sim = Simulator(
             num_consumers=1, 
-            num_content_types=50000, 
-            end_time=500000,
+            num_content_types=5, 
+            end_time=50,
             request_rate=1,
             zipf_s=0.7,
             m_q=0.7,
             num_cycles=3,
             zipf_update_interval=100000, 
-            cache_update_interval=1000,
+            cache_update_interval=10,
             grid_rows=1, 
             grid_cols=1, 
-            cache_ratio=0.01, 
+            cache_ratio=0.3, 
             policy=policy, 
             rand_seed=RAND_SEED
         )
@@ -220,6 +220,7 @@ if __name__ == "__main__":
         """Optimal Hit Rate (Theoretical Maximum)"""
         
         num_requests = sum([len(hist) for hist in sim.history])
+
         num_hits = 0
         for i, hist in enumerate(sim.history):
             opt_contents = sorted(enumerate(sim.zipf_set[i]), key = lambda x: x[1], reverse=True)
