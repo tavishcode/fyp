@@ -52,14 +52,14 @@ class DlcppTrainer:
         input_features = []
         for content_type in range(len(self.order)):
             ix = int(self.order[content_type][7:])
-            input_features.append([0, num_requests, content_sum, request_entropy, ix/50000])
+            input_features.append([0, num_requests, content_sum, request_entropy])
         for content_type in req_hist.keys():
             try:
                 ix = self.order.index(content_type)
                 input_features[ix][0] = req_hist[content_type]
             except:
                 self.order.append(content_type)
-                input_features.append([req_hist[content_type], num_requests, content_sum, request_entropy, int(content_type[7:])/50000])
+                input_features.append([req_hist[content_type], num_requests, content_sum, request_entropy])
 
         return np.array(input_features)
 
