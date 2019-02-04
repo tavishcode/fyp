@@ -1,24 +1,34 @@
 from keras.layers import Input, Dense
 from keras.models import Sequential
 from keras import losses
+from keras import backend as K
 from keras.utils import plot_model
 from keras.models import load_model
 from math import log10
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import csv
+
+
+# f = open('dlcpp-current-ranks.csv', 'w')
+# w = csv.writer(f)
+g = open('dlcpp-current-labels.csv', 'w')
+p = csv.writer(g)
 
 class DlcppTrainer:
     def __init__(self, num_of_contents, training=True):
         self.name = "dlcpp"
         self.NUM_CONTENT_TYPES = num_of_contents
-        self.model = False
-        self.pop_levels = 20
+        self.pop_levels = 10
+        self.model = self.sigmoid_model()
         self.current_ranking = defaultdict(int)
         self.TRAINING = training
         if not self.TRAINING:
             self.model = self.load_trained_model('./dlcpp_cache/dlcpp_model.h5')
+        print(K.tensorflow_backend._get_available_gpus())
+        self.order = []
 
 
     def get_entropy(self,req_hist):
@@ -40,47 +50,100 @@ class DlcppTrainer:
         request_entropy = self.get_entropy(req_hist)
 
         input_features = []
-        for content_type in range(self.NUM_CONTENT_TYPES):
-            input_features.append([0, num_requests, content_sum, request_entropy])
-
+        for content_type in range(len(self.order)):
+            ix = int(self.order[content_type][7:])
+            input_features.append([0, num_requests, content_sum, request_entropy, ix/50000])
         for content_type in req_hist.keys():
-            ix = int(content_type[7:])
-            input_features[ix][0] = req_hist[content_type]
-        
+            try:
+                ix = self.order.index(content_type)
+                input_features[ix][0] = req_hist[content_type]
+            except:
+                self.order.append(content_type)
+                input_features.append([req_hist[content_type], num_requests, content_sum, request_entropy, int(content_type[7:])/50000])
+
         return np.array(input_features)
 
     def get_true_labels(self,req_hist):
-
         # if popularity is first = [1,0,0,0,0, ..,0,0]
         # if popularity is 0.43 -> (1 - 0.43) -> 0.57*100 -> 57% / pop_levels(10) -> int(5.7) -> 5 -> [0,0,0,0,0,1,0,0,0,0]
         true_labels = []
-        for content_type in range(self.NUM_CONTENT_TYPES):
+        for content_type in range(len(self.order)):
             true_labels.append(np.zeros(self.pop_levels))
             true_labels[-1][-1] = 1
 
         num_requests = sum(req_hist.values())
 
         for content_type in req_hist.keys():
-            ix = int(content_type[7:])
-            if req_hist[content_type] == 0:
-                popularity = self.pop_levels-1
-            else:
-                popularity = int((100*(1 - (req_hist[content_type] / num_requests)) / self.pop_levels)) # 1st = 0, last = 9
-            true_labels[ix][-1] = 0
-            true_labels[ix][popularity] = 1
-
+            try:
+                ix = self.order.index(content_type)
+                if req_hist[content_type] == 0:
+                    popularity = self.pop_levels-1
+                else:
+                    popularity = int((100*(1 - (req_hist[content_type] / num_requests)) / self.pop_levels)) # 1st = 0, last = pop_levels-1
+                true_labels[ix][-1] = 0
+                true_labels[ix][popularity] = 1
+            except:
+                pass
+           
         true_labels = np.array(true_labels)
         return true_labels
 
-    def train(self,model, prev_req_hist, req_hist):
-        if not self.model:
-            self.model = baseline_model()
-        else:
-            input_features = extract_features(prev_req_hist)
-            true_labels = get_true_labels(req_hist)
-            print(input_features)
-            print(true_labels)
-            self.model.fit(input_features, true_labels, epochs=10, verbose=2)
+    def get_true_labels_ranks(self,req_hist):
+        # req_hist_ranked = sorted(req_hist.items(),key = lambda x: x[1], reverse = True)
+        # print(req_hist)
+        true_labels=[]
+        for content_type in self.order:
+            i = 0
+            try:
+                ix = req_hist[content_type]
+                # print(ix)
+                if ix >= self.pop_levels:
+                    ix = self.pop_levels - 1
+                true_labels.append(np.zeros(self.pop_levels))
+                true_labels[-1][ix] = 1
+            except:
+                true_labels.append(np.zeros(self.pop_levels))
+                # true_labels[i][0] = 1
+            i += 1
+            # print("i",true_labels[i])
+
+        true_labels = np.array(true_labels,dtype=int)
+        return true_labels
+
+    def get_true_labels_probability(self,req_hist):
+        num_requests = sum(req_hist.values())
+        true_labels=[]
+        for content_type in self.order:
+            i = 0
+            try:
+                reqs = req_hist[content_type]
+                probability = reqs/num_requests
+                true_labels.append(probability)
+            except:
+                print("8888888888888888888888888888888888")
+                true_labels.append(0)
+                # true_labels[i][0] = 1
+            i += 1
+            # print("i",true_labels[i])
+
+        true_labels = np.array(true_labels,dtype=np.float32)
+        return true_labels
+        
+
+
+    def train(self, prev_req_hist, req_hist):
+        # if not self.model:
+        #     self.model = self.baseline_model()
+        # else:
+        print("**********************")
+        input_features = self.extract_features(prev_req_hist)
+        true_labels = self.get_true_labels_probability(req_hist)
+        # print(true_labels)
+        print("order",len(self.order))
+        print("input",input_features.shape)
+        print(true_labels)
+        p.writerow(true_labels)
+        self.model.fit(input_features, true_labels, epochs=10, verbose=1)
 
     def get_entropy_csv(self,req_prob):
         request_entropy_array = []
@@ -168,19 +231,37 @@ class DlcppTrainer:
         # print(input_features)
         prediction = self.model.predict(input_features)
         # print(prediction)
-        return np.argmax(prediction,axis = 1)
+        # return np.argmax(prediction,axis = 1)
+        return prediction
 
     def updated_popularity(self,curr_reqs):
-        ranks = self.predict(curr_reqs)
-        for ix in range(self.NUM_CONTENT_TYPES):
-            self.current_ranking['content'+str(ix)] = ranks[ix]
-        return self.current_ranking
+        # ranks = self.predict(curr_reqs)
+        preds= self.predict(curr_reqs)
+
+        
+        # print("Ranks",preds)
+        for ix in range(len(self.order)):
+            self.current_ranking[self.order[ix]] = preds[ix]
+
+        self.current_ranking = OrderedDict(sorted(self.current_ranking.items(),key = lambda x: x[1], reverse=True))
+        with open('current_ranking.csv', 'w') as f:
+            for key in self.current_ranking.keys():
+                f.write("%s,%s\n"%(key,self.current_ranking[key]))
+
+        return self.current_ranking.keys()
 
     def baseline_model(self):
         model = Sequential()
         model.add(Dense(4, activation='relu',kernel_initializer='random_uniform',bias_initializer='zeros'))
         model.add(Dense(self.pop_levels, activation='softmax'))
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        return model
+    
+    def sigmoid_model(self):
+        model = Sequential()
+        model.add(Dense(5, activation='relu',kernel_initializer='random_uniform',bias_initializer='zeros'))
+        model.add(Dense(1, activation='sigmoid'))
+        model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
         return model
 
     def load_trained_model(self,file):
