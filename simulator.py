@@ -197,17 +197,17 @@ if __name__ == "__main__":
     
     """ Simulation Sample Scenario """
 
-    for policy in ['lru','lfu','gru']:
+    for policy in ['lookback','gru','lru','lfu']:
         sim = Simulator(
             num_consumers=1, 
             num_content_types=50000, 
-            end_time=50000, 
+            end_time=500000, 
             request_rate=1,
             zipf_s=0.7,
             m_q=0.7,
             num_cycles=3,
-            zipf_update_interval=10000, 
-            cache_update_interval=100,
+            zipf_update_interval=100000, 
+            cache_update_interval=1000,
             grid_rows=1, 
             grid_cols=1, 
             cache_ratio=0.01, 
