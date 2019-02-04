@@ -197,11 +197,11 @@ if __name__ == "__main__":
     
     """ Simulation Sample Scenario """
 
-    for policy in ['lru','lfu','gru']:
+    for policy in ['dlcpp']:
         sim = Simulator(
             num_consumers=1, 
             num_content_types=50000, 
-            end_time=500, 
+            end_time=50000, 
             request_rate=1,
             zipf_s=0.7,
             m_q=0.7,

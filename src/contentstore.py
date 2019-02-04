@@ -11,7 +11,7 @@ sys.path.insert(0, './lstm_cache')
 
 from dlcpp_trainer import DlcppTrainer
 from grum2m import GruEncoderDecoder
-from lstm_cache import LstmTrainer
+# from lstm_cache import LstmTrainer
 """DDPG-RL Imports"""
 
 from ddpg_cache_train import Trainer as ddpg_trainer
@@ -385,36 +385,42 @@ class DlcppContentStore(ContentStore):
     def __init__(self, size, num_content_types):
         super().__init__(size)
 
-        self.store = OrderedDict() 
+        self.store = defaultdict()
         self.prev_reqs = defaultdict(int)
         self.curr_reqs = defaultdict(int)
         self.NUM_CONTENT_TYPES = num_content_types
         self.num_updates = 0
         self.BOOTSTRAPPING = True
         self.bootstrap = LfuContentStore(size)
-        self.trainer = DlcppTrainer(self.NUM_CONTENT_TYPES,training=False)
-        self.popularity_table = defaultdict(int)
-
-    # def get(self, item_name):
-    #     """Wrapper function for get_helper which includes hit/miss statistic updates"""
-    #     item = self.get_helper(item_name)
-    #     if item != None and not self.BOOTSTRAPPING:
-    #         self.hits += 1
-    #     elif not self.BOOTSTRAPPING:
-    #         self.misses += 1
-    #     else: # use bootstrap
-    #         item = self.bootstrap.get(item_name)
-    #         self.hits = self.bootstrap.hits
-    #         self.misses = self.bootstrap.misses
-    #     return item
+        self.trainer = DlcppTrainer(self.NUM_CONTENT_TYPES,training=True)
+        # self.popularity_table = defaultdict(int) #content7: 1, content9: 4 .. 
+        self.popularity_table = []
+        self.start_predicting_at = 0
 
     def add(self, item): 
-        if self.BOOTSTRAPPING:
-            self.bootstrap.add(item)
+       if self.size:
+            ix = int(item.name[7:])
+            if(len(self.store) == self.size):
+                try:
+                    rank = self.popularity_table.index(item.name)
+                    for content in self.store.keys():
+                        if self.popularity_table[content] < rank:
+                            self.store.pop(content)
+                            self.store[item.name] = item
+                            print("replaced")
+                except:
+                    self.store.popitem()
+                    self.store[item.name] = item
+                    # print("not cool")
+                # print(rank, self.cache_ranking[-1][-1])
+            else:
+                # print('inserted')
+                self.store[item.name] = item
+            # print(self.store)
     
     def get_helper(self, item):
+        self.curr_reqs[item] += 1
         try:
-            self.curr_reqs[item.name] += 1
             return self.store[item.name]
         except:
             return None
@@ -422,16 +428,20 @@ class DlcppContentStore(ContentStore):
     
     def update_state(self):
         """Called every CACHE_UPDATE_INTERVAL"""
-        #TODO get latest popularity rankings
-        # self.get_latest_rankings()
-        score = self.trainer.evaluate(self.curr_reqs,self.prev_reqs)
-        print(score)
+        self.start_predicting_at += 1
+        if self.start_predicting_at > 5 :
+            self.get_latest_rankings()
+            # score = self.trainer.evaluate(self.curr_reqs,self.prev_reqs)
+            # print(score)
+        if self.prev_reqs and self.curr_reqs:
+            self.trainer.train(self.prev_reqs, self.curr_reqs)
         self.prev_reqs = self.curr_reqs
         self.curr_reqs = defaultdict(int)
+        
 
     def get_latest_rankings(self):
         self.popularity_table = self.trainer.updated_popularity(self.curr_reqs)
-        print(self.popularity_table)
+        # print(self.popularity_table)
 
 class LstmContentStore(ContentStore):
     def __init__(self, size, num_content_types):
