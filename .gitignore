@@ -5,3 +5,4 @@ venv/
 *.h5
 data/
 *.csv
+.ipynb_checkpoints/
