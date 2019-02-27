@@ -46,7 +46,11 @@ class ContentStore:
         else:
             self.misses += 1
         return item
-
+    def has(self, item_name):
+        if item_name in self.store:
+            return self.store[item_name]
+        else:
+            return None
 """First in First Out Cache Policy"""
 class FifoContentStore(ContentStore):
     def __init__(self, size, num_content_types):

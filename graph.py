@@ -49,7 +49,10 @@ class Graph:
                 pair_col_ix = j % grid_cols
                 if abs(pair_row_ix - row_ix) + abs(pair_col_ix - col_ix) == 1:
                     self.adj_mtx[i][j] = 1
-    
+        
+        self.sp = []
+        for i in range(self.num_routers):
+            self.sp.append(self.set_shortest_paths(i))
     def get_random_router(self):
         return self.rng.choice(self.routers)
 
@@ -91,5 +94,50 @@ class Graph:
                     fib[p.content] = self.get_best_hop(self.adj_mtx, self.get_pos(r), self.get_pos(p.gateway))
             r.FIB = fib
 
+    def set_shortest_paths(self, src):
+        Q=set()
+        dist=[]
+        prev=[]
+        for r in range(self.num_routers):
+            dist.append(float("inf"))
+            prev.append(None)
+            Q.add(r)
+        dist[src] = 0
+        prev[src] = src
+        while Q:
+            u, dist_u = None, float("inf")
+            for v in Q:
+                if dist[v] < dist_u:
+                    u, dist_u = v, dist[v]
+            Q.remove(u)
+            for neighbor, indicator in enumerate(self.adj_mtx[u]):
+                if indicator and dist_u+1 < dist[neighbor]:
+                    dist[neighbor]=dist_u+1
+                    prev[neighbor]=u
+        result = []
+        for r in range(self.num_routers):
+            cur = r
+            while prev[cur] != src:
+                cur = prev[cur]
+            result.append([cur,dist[r]])
+        return result
 
-
+    def reset_paths(self, producers):
+        for src in self.routers:
+            paths = self.sp[int(src.name[1:])]
+            for p in producers:
+                c = p.content
+                old=src.FIB[c]
+                if src.FIB[c] == p:
+                    if src.contentstore.has(c):
+                        src.FIB[c] = src
+                    return 
+                src.FIB[c] = self.routers[paths[int(p.gateway.name[1:])][0]] #reset path to point to gateway
+                if old != src.FIB[c]:
+                    print("GATE: " +old.name + ", CHOSEN: " + src.FIB[c].name)
+                    # print("ERR")
+                distance = paths[int(p.gateway.name[1:])][1] + 1
+                for dest in self.routers:
+                    if dest.contentstore.has(c) and paths[int(dest.name[1:])][1] < distance:
+                        src.FIB[c] = self.routers[paths[int(p.gateway.name[1:])][0]]
+                        distance = paths[int(dest.name[1:])][1]
