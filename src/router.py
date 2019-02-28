@@ -42,6 +42,7 @@ class Router:
         self.PIT = {} 
         self.name = name
         self.q = q
+        self.neighbors = []
 
     def print_fib(self):
         print("FIB of " + self.name)
@@ -90,3 +91,6 @@ class Router:
                 else:
                     self.q.add(Event(node.name, time+0.1, 'REC', Packet(pkt.name, is_interest=False, hop_count=hop_count), self))
             self.PIT[pkt.name] = []
+    
+    def set_neighbors(self, neighbors):
+        self.neighbors = neighbors

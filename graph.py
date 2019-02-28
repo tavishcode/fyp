@@ -53,6 +53,22 @@ class Graph:
         self.sp = []
         for i in range(self.num_routers):
             self.sp.append(self.set_shortest_paths(i))
+
+        #Set neighbors 
+        for idx, r in enumerate(self.routers):
+            neighbors = []
+            if idx % grid_cols:
+                neighbors.append(self.routers[idx-1])
+            if idx % grid_cols < grid_cols -1:
+                neighbors.append(self.routers[idx+1])
+            if idx > grid_cols:
+                neighbors.append(self.routers[idx-grid_cols])
+            if idx < self.num_routers - grid_cols:
+                neighbors.append(self.routers[idx+grid_cols])
+            r.set_neighbors(neighbors)
+            print("Router: " + str(idx))
+            print([x.name for x in neighbors])
+
     def get_random_router(self):
         return self.rng.choice(self.routers)
 
