@@ -1,6 +1,7 @@
 from .src.router import Router
 from .src.consumer import Consumer
 from .src.producer import Producer
+from .src.eventlist import EventList
 from .graph import Graph
 import random
 import math
