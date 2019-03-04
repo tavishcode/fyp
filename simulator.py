@@ -1,7 +1,7 @@
 import sys
 # sys.path.insert(0, './src')
-from .src import *
-from graph import Graph
+from .src.router import Router
+from .graph import Graph
 import random
 import math
 import numpy as np
