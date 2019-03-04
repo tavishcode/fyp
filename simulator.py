@@ -1,7 +1,7 @@
 from .src.router import Router
 from .src.consumer import Consumer
 from .src.producer import Producer
-from .src.eventlist import *
+from .src.eventlist import EventList as Elist
 from .graph import Graph
 import random
 import math
@@ -66,7 +66,7 @@ class Simulator:
     # random number generator responsible for all non third-party randomizations
     self.rng = np.random.RandomState(self.RAND_SEED)
     # global queue of events
-    self.q = eventlist.EventList()
+    self.q = EList()
     self.prev_cache_update = 0
     self.curr_time = 0
     # continuously increasing time
