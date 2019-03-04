@@ -1,7 +1,5 @@
 import random
 from .src.router import Router
-import sys
-sys.path.insert(0, './src')
 
 """
     Container class for router nodes
