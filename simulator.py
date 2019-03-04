@@ -1,16 +1,15 @@
 import sys
-sys.path.insert(0, './src')
-from router import Router
-from consumer import Consumer
-from producer import Producer
+# sys.path.insert(0, './src')
+from src.router import Router
+from src.consumer import Consumer
+from src.producer import Producer
 from graph import Graph
-from packet import Packet
-from test import *
+from src.packet import Packet
 import random
 import math
 import numpy as np
 from matplotlib import pyplot as plt
-from eventlist import *
+from src.eventlist import *
 
 
 """Creates visualization for simulation"""
