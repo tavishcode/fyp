@@ -9,7 +9,6 @@
 """
 from .eventlist import *
 
-
 class Consumer:
   def __init__(self, name, gateway, q):
     self.name = name

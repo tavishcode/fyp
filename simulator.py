@@ -109,6 +109,8 @@ class Simulator:
     # set FIBs in routers
     self.net_core.set_routes_to_producers(self.producers)
 
+    
+
   def get_next_actor(self):
     """Returns next actor (node) to execute event for (event with min value for time)"""
     min_time = None
@@ -124,7 +126,6 @@ class Simulator:
         self.set_next_content_request(actor)
         # ensures queue is never empty and simulation
         # will run until end time
-
       elif actor_type == 'r':                             # if router
         actor = self.net_core.routers[actor_ix]
       else:                                               # if producer
@@ -136,8 +137,9 @@ class Simulator:
 
   def set_next_content_request(self, consumer):
     self.curr_request += 1
+    weights = self.requests[:,self.curr_day]/(sum(self.requests[:,self.curr_day])) # DEBUG: for tests using a subset of content types
     content_name = self.rng.choice(
-        self.content_types, 1, p=self.requests[:, self.curr_day])[0]
+        self.content_types, 1, p=weights)[0]
     self.q.add(Event(consumer.name, consumer.time_of_next_request,
                      'REQ', Packet(content_name), None))
     if self.curr_request >= self.total_reqs[self.curr_day]:
@@ -162,3 +164,4 @@ class Simulator:
                   ' Hit Rate: ' + str(router.contentstore.hits/total))
       actor.execute()
       actor = self.get_next_actor()
+    visualize(self.net_core.adj_mtx, self.consumers, self.producers)
