@@ -66,7 +66,7 @@ class Simulator:
     # random number generator responsible for all non third-party randomizations
     self.rng = np.random.RandomState(self.RAND_SEED)
     # global queue of events
-    self.q = EventList()
+    self.q = eventlist.EventList()
     self.prev_cache_update = 0
     self.curr_time = 0
     # continuously increasing time
