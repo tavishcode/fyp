@@ -18,25 +18,19 @@ class Router:
   def __init__(self, cache_size, num_content_types, name, policy, q):
 
     if policy == 'fifo':
-      self.contentstore = FifoContentStore(cache_size, num_content_types)
+      self.contentstore = FifoContentStore(cache_size)
     elif policy == 'lru':
       self.contentstore = LruContentStore(cache_size)
     elif policy == 'lfu':
       self.contentstore = LfuContentStore(cache_size)
     elif policy == 'rma':
       self.contentstore = RMAContentStore(cache_size)
-    elif policy == 'ddpg':
-      self.contentstore = DdpgContentStore(cache_size, num_content_types)
-    elif policy == 'gru':
-      self.contentstore = GruContentStore(cache_size, num_content_types)
-    elif policy == 'lookback':
-      self.contentstore = LookbackContentStore(cache_size, num_content_types)
-    elif policy == 'dlcpp':
-      self.contentstore = DlcppContentStore(cache_size, num_content_types)
-    elif policy == 'lstm':
-      self.contentstore = LstmContentStore(cache_size, num_content_types)
-    elif policy == 'probrl':
-      self.contentstore = ProbRlContentStore(cache_size, num_content_types)
+    elif policy == 'ema':
+      self.contentstore = EMAContentStore(cache_size)
+    elif policy == 'prnn':
+      self.contentstore = PretrainedRNNContentStore(cache_size)
+    elif policy == 'od':
+      self.contentstore = ODContentStore(cache_size)
     elif policy == 'random':
       self.contentstore = RandomContentStore(cache_size)
     self.FIB = {}

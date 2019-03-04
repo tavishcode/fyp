@@ -141,7 +141,7 @@ class Simulator:
         self.content_types, 1, p=weights)[0]
     self.q.add(Event(consumer.name, consumer.time_of_next_request,
                      'REQ', Packet(content_name), None))
-    if self.curr_request >= self.total_reqs[self.curr_day]:
+    if self.curr_request >= self.total_reqs:
       self.curr_day += 1
       self.curr_request = 0
     consumer.time_of_next_request += self.rng.exponential(
