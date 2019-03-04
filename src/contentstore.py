@@ -321,11 +321,11 @@ class PretrainedRNNContentStore(ContentStore):
       for key in self.ranking.keys():
         if key not in self.history:
           self.history[key] = np.zeros(self.window)
-        agg_data[key] = self.history[key]
+        agg_data[int(key[7:])] = self.history[key]
       agg_data = self.scaler.fit_transform(agg_data)
       rankings = self.model.predict(agg_data.reshape(-1, 7, 1)).ravel()
       for i, r in enumerate(rankings):
-        self.ranking[str(i)] = r
+        self.ranking['content' + str(i)] = r
     if self.interval_count == self.bootstrap_period:
       self.bootstrapping = False
 
@@ -334,7 +334,8 @@ class PretrainedRNNContentStore(ContentStore):
       if item.name not in self.history:
         self.history[item.name] = np.zeros(self.window)
       self.history[item.name][self.interval_count % 7] += 1
-      cached_item = self.store[item.name]
+      cached_item = self.bootstrap.get(
+          item) if self.bootstrapping else self.store[item.name]
       return cached_item
     except:
       return None
