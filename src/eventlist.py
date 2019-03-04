@@ -1,4 +1,4 @@
-class Event():
+class Event:
     def __init__(self, actor_name, time, func, pkt, src):
         self.time = time
         self.func = func
@@ -8,7 +8,7 @@ class Event():
         self.next = None
         self.prev = None
 
-class EventList():
+class EventList:
     def __init__(self):
         self.head = None
         self.tail = None
