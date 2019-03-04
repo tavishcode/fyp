@@ -1,10 +1,10 @@
 import sys
 # sys.path.insert(0, './src')
-from src.router import Router
-from src.consumer import Consumer
-from src.producer import Producer
+from src import router.Router as Router
+from src import consumer.Consumer as Consumer
+from src import producer.Producer as Producer
 from graph import Graph
-from src.packet import Packet
+from src  import packet.Packet as Packet
 import random
 import math
 import numpy as np
