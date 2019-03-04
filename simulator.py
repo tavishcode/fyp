@@ -1,7 +1,7 @@
 from .src.router import Router
 from .src.consumer import Consumer
 from .src.producer import Producer
-# from .src.eventlist import *
+from .src.eventlist import *
 from .graph import Graph
 import random
 import math
@@ -61,91 +61,92 @@ class Simulator:
         self.rng = np.random.RandomState(self.RAND_SEED)                # random number generator responsible for all non third-party randomizations
 
 
-        self.prev_cache_update = 0                                      
-        self.curr_time = 0
-        self.curr_day = 0                                              # continuously increasing time
-        self.end_day = end_day
-        self.consumers = []
-        self.producers = []
+        self.q = EventList()                                            # global queue of events
+    #     self.prev_cache_update = 0                                      
+    #     self.curr_time = 0
+    #     self.curr_day = 0                                              # continuously increasing time
+    #     self.end_day = end_day
+    #     self.consumers = []
+    #     self.producers = []
        
-        num_routers = grid_rows * grid_cols                             # number of total routers in topology
+    #     num_routers = grid_rows * grid_cols                             # number of total routers in topology
 
-        # populate content
-        self.content_types = ["content" + str(i) \
-            for i in range(self.NUM_CONTENT_TYPES)] 
+    #     # populate content
+    #     self.content_types = ["content" + str(i) \
+    #         for i in range(self.NUM_CONTENT_TYPES)] 
         
-        # initialize routers
-        self.net_core = Graph(
-                            self.CACHE_SIZE, 
-                            self.NUM_CONTENT_TYPES, 
-                            grid_rows, 
-                            grid_cols, 
-                            self.policy, 
-                            self.q, 
-                            self.rng
-                        )
+    #     # initialize routers
+    #     self.net_core = Graph(
+    #                         self.CACHE_SIZE, 
+    #                         self.NUM_CONTENT_TYPES, 
+    #                         grid_rows, 
+    #                         grid_cols, 
+    #                         self.policy, 
+    #                         self.q, 
+    #                         self.rng
+    #                     )
 
-        # assign consumers and producers with gateway routers
-        for i in range(num_consumers):
-            r = self.net_core.get_random_router()
-            self.consumers.append(
-                Consumer("c" + str(i), r, self.q)
-            )
+    #     # assign consumers and producers with gateway routers
+    #     for i in range(num_consumers):
+    #         r = self.net_core.get_random_router()
+    #         self.consumers.append(
+    #             Consumer("c" + str(i), r, self.q)
+    #         )
 
-        for i in range(num_content_types):
-            r = self.net_core.get_random_router()
-            self.producers.append(
-                Producer("p" + str(i), r, "content" + str(i), self.q)
-            )
+    #     for i in range(num_content_types):
+    #         r = self.net_core.get_random_router()
+    #         self.producers.append(
+    #             Producer("p" + str(i), r, "content" + str(i), self.q)
+    #         )
 
-        # set FIBs in routers
-        self.net_core.set_routes_to_producers(self.producers)
+    #     # set FIBs in routers
+    #     self.net_core.set_routes_to_producers(self.producers)
     
-    def get_next_actor(self):
-        """Returns next actor (node) to execute event for (event with min value for time)"""
-        min_time = None
-        actor = None
-        actor_name, min_time = self.q.peek()                    # get next event from queue
-        if actor_name != None:                                  # if q is not empty
-            actor_ix = int(actor_name[1:])      
-            actor_type = actor_name[0]
-            if actor_type == 'c':                               # if consumer
-                actor = self.consumers[actor_ix]
-                self.set_next_content_request(actor)            # schedule next consumer request,
-                                                                # ensures queue is never empty and simulation
-                                                                # will run until end time
+    # def get_next_actor(self):
+    #     """Returns next actor (node) to execute event for (event with min value for time)"""
+    #     min_time = None
+    #     actor = None
+    #     actor_name, min_time = self.q.peek()                    # get next event from queue
+    #     if actor_name != None:                                  # if q is not empty
+    #         actor_ix = int(actor_name[1:])      
+    #         actor_type = actor_name[0]
+    #         if actor_type == 'c':                               # if consumer
+    #             actor = self.consumers[actor_ix]
+    #             self.set_next_content_request(actor)            # schedule next consumer request,
+    #                                                             # ensures queue is never empty and simulation
+    #                                                             # will run until end time
 
-            elif actor_type == 'r':                             # if router
-                actor = self.net_core.routers[actor_ix]
-            else:                                               # if producer
-                actor = self.producers[actor_ix]
-            assert(self.curr_time <= min_time)                  # events cannot occur in the past
-        self.curr_time = min_time
-        return actor
+    #         elif actor_type == 'r':                             # if router
+    #             actor = self.net_core.routers[actor_ix]
+    #         else:                                               # if producer
+    #             actor = self.producers[actor_ix]
+    #         assert(self.curr_time <= min_time)                  # events cannot occur in the past
+    #     self.curr_time = min_time
+    #     return actor
     
 
-    def set_next_content_request(self, consumer):
-        self.curr_request += 1
-        content_name = self.rng.choice(self.content_types, 1, p=self.requests[:,self.curr_day])[0]
-        self.q.add(Event(consumer.name,consumer.time_of_next_request,'REQ',Packet(content_name),None))
-        if self.curr_request >= self.total_reqs[self.curr_day]:
-            self.curr_day += 1
-            self.curr_request = 0
-        consumer.time_of_next_request += self.rng.exponential(1/self.REQUEST_RATE)
+    # def set_next_content_request(self, consumer):
+    #     self.curr_request += 1
+    #     content_name = self.rng.choice(self.content_types, 1, p=self.requests[:,self.curr_day])[0]
+    #     self.q.add(Event(consumer.name,consumer.time_of_next_request,'REQ',Packet(content_name),None))
+    #     if self.curr_request >= self.total_reqs[self.curr_day]:
+    #         self.curr_day += 1
+    #         self.curr_request = 0
+    #     consumer.time_of_next_request += self.rng.exponential(1/self.REQUEST_RATE)
 
-    def run(self):
-        """Executes events for nodes"""
-        for consumer in self.consumers:                 # init simulation with a content request from all consumers
-            self.set_next_content_request(consumer)
-        actor = self.get_next_actor()
-        while self.curr_day < self.end_day:
-            if self.curr_day - self.prev_cache_update >= self.CACHE_UPDATE_INTERVAL:
-                self.prev_cache_update = self.curr_day
-                for ix, router in enumerate(self.net_core.routers):
-                    router.contentstore.update_state()
-                    total = router.contentstore.hits + router.contentstore.misses
-                    if total:
-                        print(router.name + ' ' + self.policy + ' Hit Rate: ' + str(router.contentstore.hits/total))  
-            actor.execute()
-            actor = self.get_next_actor()
+    # def run(self):
+    #     """Executes events for nodes"""
+    #     for consumer in self.consumers:                 # init simulation with a content request from all consumers
+    #         self.set_next_content_request(consumer)
+    #     actor = self.get_next_actor()
+    #     while self.curr_day < self.end_day:
+    #         if self.curr_day - self.prev_cache_update >= self.CACHE_UPDATE_INTERVAL:
+    #             self.prev_cache_update = self.curr_day
+    #             for ix, router in enumerate(self.net_core.routers):
+    #                 router.contentstore.update_state()
+    #                 total = router.contentstore.hits + router.contentstore.misses
+    #                 if total:
+    #                     print(router.name + ' ' + self.policy + ' Hit Rate: ' + str(router.contentstore.hits/total))  
+    #         actor.execute()
+    #         actor = self.get_next_actor()
             
