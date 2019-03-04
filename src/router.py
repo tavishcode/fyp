@@ -29,6 +29,8 @@ class Router:
       self.contentstore = EMAContentStore(cache_size)
     elif policy == 'prnn':
       self.contentstore = PretrainedRNNContentStore(cache_size)
+    elif policy == 'online_prnn':
+      self.contentstore = PretrainedRNNContentStore(cache_size, online=True)
     elif policy == 'od':
       self.contentstore = ODContentStore(cache_size)
     elif policy == 'random':

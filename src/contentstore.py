@@ -268,15 +268,8 @@ class ODContentStore(ContentStore):
     except:
       return None
 
-# # TODO: add regular RNNContentStore (not pretrained)
-# # - mechanism to collect data for x amount of time
-# # - another cache policy to be used during data collection period
-# # - training on collected data
-# # - use of trained model to make predictions after data collection period has ended
-
-
 class PretrainedRNNContentStore(ContentStore):
-  def __init__(self, size):
+  def __init__(self, size, online=False):
     super().__init__(size)
     self.bootstrap = LruContentStore(size)
     self.bootstrap_period = 7
@@ -291,6 +284,9 @@ class PretrainedRNNContentStore(ContentStore):
     self.interval_count = 0
     self.window = 7
     self.scaler = MinMaxScaler()
+    self.online = online
+    self.train_x = None
+    self.train_y = None
 
   def add(self, item):
     if self.bootstrapping:
@@ -324,6 +320,11 @@ class PretrainedRNNContentStore(ContentStore):
         agg_data[int(key[7:])] = self.history[key]
       agg_data = self.scaler.fit_transform(agg_data)
       rankings = self.model.predict(agg_data.reshape(-1, 7, 1)).ravel()
+      if self.online: # continue to train model during test phase
+        self.train_y = agg_data[:,-1]
+        if self.train_x is not None: # skips first day
+          self.model.train_on_batch(self.train_x, self.train_y)
+        self.train_x = agg_data.reshape(-1, 7, 1)
       for i, r in enumerate(rankings):
         self.ranking['content' + str(i)] = r
     if self.interval_count == self.bootstrap_period:
