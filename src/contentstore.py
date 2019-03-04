@@ -283,7 +283,7 @@ class PretrainedRNNContentStore(ContentStore):
     self.window = 7
     self.num_features = 1
     self.model = load_model(
-        '/drive/My Drive/simple_gru.h5')
+        'drive/My Drive/simple_gru.h5')
     self.store = {}
     self.history = {}
     self.ranking = defaultdict(int)
