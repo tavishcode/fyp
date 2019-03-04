@@ -55,13 +55,13 @@ class Simulator:
         self.curr_request = 0
         self.num_requests = 0
 
-        random.seed(self.RAND_SEED)
-        np.random.seed(self.RAND_SEED)
+        # random.seed(self.RAND_SEED)
+        # np.random.seed(self.RAND_SEED)
 
-        self.rng = np.random.RandomState(self.RAND_SEED)                # random number generator responsible for all non third-party randomizations
+        # self.rng = np.random.RandomState(self.RAND_SEED)                # random number generator responsible for all non third-party randomizations
 
 
-        self.q = EventList()                                            # global queue of events
+        # self.q = EventList()                                            # global queue of events
     #     self.prev_cache_update = 0                                      
     #     self.curr_time = 0
     #     self.curr_day = 0                                              # continuously increasing time
