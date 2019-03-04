@@ -1,6 +1,6 @@
 import sys
 # sys.path.insert(0, './src')
-from src import *
+from .src import *
 from graph import Graph
 import random
 import math
