@@ -144,7 +144,7 @@ class RMAContentStore():
         else:
             try:
                 if item.name not in self.history:
-                self.history[item.name] = [0 for _ in range(self.window)]
+                    self.history[item.name] = [0 for _ in range(self.window)]
                 self.history[item.name][self.interval_count % 7] += 1
                 cached_item = self.store[item.name]
                 return cached_item
