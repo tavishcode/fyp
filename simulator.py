@@ -1,6 +1,6 @@
-import sys
-# sys.path.insert(0, './src')
 from .src.router import Router
+from .src.consumer import Consumer
+from .src.producer import Producer
 from .graph import Graph
 import random
 import math

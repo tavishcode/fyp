@@ -1,7 +1,5 @@
-import sys
-sys.path.insert(0, './src')
-from packet import Packet
-from eventlist import *
+from .packet import Packet
+from .eventlist import *
 
 """ A CCN Producer Node
 

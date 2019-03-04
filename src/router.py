@@ -1,9 +1,6 @@
-import sys
-sys.path.insert(0, './src')
-from contentstore import *
-
-from packet import Packet
-from eventlist import *
+from .contentstore import *
+from .packet import Packet
+from .eventlist import *
 
 """ A CCN Router Node
 

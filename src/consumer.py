@@ -7,7 +7,7 @@
         q: a queue of events receieved by a node
         
 """
-from eventlist import *
+from .eventlist import *
 
 class Consumer:
     def __init__(self, name, gateway, q):
