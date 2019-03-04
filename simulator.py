@@ -43,17 +43,17 @@ class Simulator:
                 requests,
                 total_reqs,
                 rand_seed = 123):
-
-        self.REQUEST_RATE = request_rate                                # requests/s for each consumer
-        self.NUM_CONTENT_TYPES = num_content_types                      # number of unique content types
-        self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)     
-        self.CACHE_UPDATE_INTERVAL = cache_update_interval              # interval to call update_state() on caches
-        self.RAND_SEED = rand_seed
-        self.policy = policy
-        self.requests = requests
-        self.total_reqs = total_reqs
-        self.curr_request = 0
-        self.num_requests = 0
+        pass
+        # self.REQUEST_RATE = request_rate                                # requests/s for each consumer
+        # self.NUM_CONTENT_TYPES = num_content_types                      # number of unique content types
+        # self.CACHE_SIZE = int(cache_ratio * self.NUM_CONTENT_TYPES)     
+        # self.CACHE_UPDATE_INTERVAL = cache_update_interval              # interval to call update_state() on caches
+        # self.RAND_SEED = rand_seed
+        # self.policy = policy
+        # self.requests = requests
+        # self.total_reqs = total_reqs
+        # self.curr_request = 0
+        # self.num_requests = 0
 
         # random.seed(self.RAND_SEED)
         # np.random.seed(self.RAND_SEED)
