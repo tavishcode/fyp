@@ -59,7 +59,7 @@ class Simulator:
     self.total_reqs = total_reqs
     self.curr_request = 0
     self.num_requests = 0
-
+    self.q = EventList()
     random.seed(self.RAND_SEED)
     np.random.seed(self.RAND_SEED)
 
@@ -89,7 +89,7 @@ class Simulator:
         grid_rows,
         grid_cols,
         self.policy,
-        EventList(),
+        self.q,
         self.rng
     )
 
