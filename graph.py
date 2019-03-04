@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, './src')
-from router import Router
+from .src.router import Router
 import random 
 
 """
