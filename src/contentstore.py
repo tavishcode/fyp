@@ -102,7 +102,7 @@ class RandomContentStore(ContentStore):
       return cached_item
     except:
       return None
-
+      
 
 class RMAContentStore(ContentStore):
   def __init__(self, size):
@@ -149,18 +149,14 @@ class RMAContentStore(ContentStore):
       self.bootstrapping = False
 
   def get_helper(self, item):
-    if self.bootstrapping:
-      self.bootstrap.get_helper(item)
-    else:
-      try:
-        if item.name not in self.history:
-          self.history[item.name] = [0 for _ in range(self.window)]
-        self.history[item.name][self.interval_count % 7] += 1
-        cached_item = self.store[item.name]
-        return cached_item
-      except:
-        return None
-
+    try:
+      if item.name not in self.history:
+        self.history[item.name] = [0 for _ in range(self.window)]
+      self.history[item.name][self.interval_count % 7] += 1
+      cached_item = self.bootstrap.get(item) if self.bootstrapping else self.store[item.name]
+      return cached_item
+    except:
+      return None
 
 # class EMAContentStore(ContentStore):
 #   def __init__(self, size):

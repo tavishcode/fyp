@@ -66,8 +66,8 @@ class Graph:
       if idx < self.num_routers - grid_cols:
         neighbors.append(self.routers[idx+grid_cols])
       r.set_neighbors(neighbors)
-      print("Router: " + str(idx))
-      print([x.name for x in neighbors])
+      # print("Router: " + str(idx))
+      # print([x.name for x in neighbors])
 
   def get_random_router(self):
     return self.rng.choice(self.routers)

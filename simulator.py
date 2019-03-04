@@ -9,7 +9,6 @@ import math
 import numpy as np
 from matplotlib import pyplot as plt
 
-
 """Creates visualization for simulation"""
 
 
@@ -109,8 +108,6 @@ class Simulator:
     # set FIBs in routers
     self.net_core.set_routes_to_producers(self.producers)
 
-    
-
   def get_next_actor(self):
     """Returns next actor (node) to execute event for (event with min value for time)"""
     min_time = None
@@ -137,7 +134,9 @@ class Simulator:
 
   def set_next_content_request(self, consumer):
     self.curr_request += 1
-    weights = self.requests[:,self.curr_day]/(sum(self.requests[:,self.curr_day])) # DEBUG: for tests using a subset of content types
+    # DEBUG: for tests using a subset of content types
+    weights = self.requests[:, self.curr_day] / \
+        (sum(self.requests[:, self.curr_day]))
     content_name = self.rng.choice(
         self.content_types, 1, p=weights)[0]
     self.q.add(Event(consumer.name, consumer.time_of_next_request,
@@ -157,11 +156,16 @@ class Simulator:
       if self.curr_day - self.prev_cache_update >= self.CACHE_UPDATE_INTERVAL:
         self.prev_cache_update = self.curr_day
         for ix, router in enumerate(self.net_core.routers):
-          router.contentstore.update_state()
+          router.contentstore.refresh()
           total = router.contentstore.hits + router.contentstore.misses
           if total:
             print(router.name + ' ' + self.policy +
                   ' Hit Rate: ' + str(router.contentstore.hits/total))
       actor.execute()
       actor = self.get_next_actor()
-    visualize(self.net_core.adj_mtx, self.consumers, self.producers)
+    for ix, router in enumerate(self.net_core.routers):
+      router.contentstore.refresh()
+      total = router.contentstore.hits + router.contentstore.misses
+      if total:
+        print(router.name + ' ' + self.policy +
+              ' Hit Rate: ' + str(router.contentstore.hits/total))

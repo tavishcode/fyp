@@ -23,6 +23,8 @@ class Router:
       self.contentstore = LruContentStore(cache_size)
     elif policy == 'lfu':
       self.contentstore = LfuContentStore(cache_size)
+    elif policy == 'rma':
+      self.contentstore = RMAContentStore(cache_size)
     elif policy == 'ddpg':
       self.contentstore = DdpgContentStore(cache_size, num_content_types)
     elif policy == 'gru':
