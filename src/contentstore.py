@@ -3,6 +3,7 @@ from collections import OrderedDict
 from collections import defaultdict
 import numpy as np
 from keras.models import load_model
+from sklearn.preprocessing import MinMaxScaler
 
 
 class ContentStore:
