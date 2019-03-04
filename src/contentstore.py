@@ -40,7 +40,7 @@ class ContentStore:
 
 class LruContentStore(ContentStore):
   def __init__(self, size):
-    super().__init__(self, size)
+    super().__init__(size)
     self.store = OrderedDict()
 
   def add(self, item):
@@ -60,7 +60,7 @@ class LruContentStore(ContentStore):
 
 class LfuContentStore(ContentStore):
   def __init__(self, size):
-    super().__init__(self, size)
+    super().__init__(size)
     self.store = {}  # {'name', [item, freq]}
 
   def add(self, item):
@@ -86,7 +86,7 @@ class LfuContentStore(ContentStore):
 
 class RandomContentStore(ContentStore):
   def __init__(self, size):
-    super().__init__(self, size)
+    super().__init__(size)
     self.rng = np.random.RandomState(123)
     self.store = {}
 
@@ -106,7 +106,7 @@ class RandomContentStore(ContentStore):
 
 class RMAContentStore(ContentStore):
   def __init__(self, size):
-    super().__init__(self, size)
+    super().__init__(size)
     self.bootstrap = LruContentStore(size)
     self.bootstrap_period = 7
     self.store = {}
@@ -164,7 +164,7 @@ class RMAContentStore(ContentStore):
 
 # class EMAContentStore(ContentStore):
 #   def __init__(self, size):
-#     super().__init__(self, size)
+#     super().__init__(size)
 #     self.store = {}
 #     self.history = defaultdict(int)
 #     self.ranking = defaultdict(int)
@@ -206,7 +206,7 @@ class RMAContentStore(ContentStore):
 
 # class ODContentStore(ContentStore):
 #   def __init__(self, size):
-#     super().__init__(self, size)
+#     super().__init__(size)
 #     self.store = {}
 #     self.history = defaultdict(int)
 #     self.ranking = {}
@@ -251,7 +251,7 @@ class RMAContentStore(ContentStore):
 
 # class PretrainedRNNContentStore(ContentStore):
 #   def __init__(self, size):
-#     super().__init__(self, size)
+#     super().__init__(size)
 #     self.window = 7
 #     self.num_features = 1
 #     self.model = load_model('simple_gru.h5')
