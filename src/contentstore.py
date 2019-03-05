@@ -279,7 +279,7 @@ class PretrainedRNNContentStore(ContentStore):
     self.model = load_model(
         'drive/My Drive/simple_gru.h5')
     self.store = {}
-    self.history = {}
+    self.history = OrderedDict()
     self.ranking = defaultdict(int)
     self.interval_count = 0
     self.window = 7
@@ -321,8 +321,8 @@ class PretrainedRNNContentStore(ContentStore):
       # make preds
       rankings = self.model.predict(agg_data.reshape(-1, 7, 1)).ravel()
       if self.online: # continue to train model during test phase
-        self.train_y = agg_data[:,-1]
         if self.train_x is not None: # skips first day
+          self.train_y = agg_data[:self.train_x.shape[0],-1] # only uses y's of packets seen in past
           self.model.train_on_batch(self.train_x, self.train_y)
         self.train_x = agg_data.reshape(-1, 7, 1)
       # map preds to content types
