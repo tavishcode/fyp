@@ -313,10 +313,8 @@ class PretrainedRNNContentStore(ContentStore):
   def refresh(self):
     self.interval_count += 1
     if not self.bootstrapping:
-      agg_data = np.zeros((len(self.ranking.keys()), self.window))
-      for key in self.ranking.keys():
-        if key not in self.history:
-          self.history[key] = np.zeros(self.window)
+      agg_data = np.zeros((len(self.history.keys()), self.window))
+      for key in self.history.keys():
         agg_data[int(key[7:])] = self.history[key]
       agg_data = self.scaler.fit_transform(agg_data)
       rankings = self.model.predict(agg_data.reshape(-1, 7, 1)).ravel()
