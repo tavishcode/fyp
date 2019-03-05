@@ -313,18 +313,21 @@ class PretrainedRNNContentStore(ContentStore):
   def refresh(self):
     self.interval_count += 1
     if not self.bootstrapping:
+      # reshape data
       agg_data = np.zeros((len(self.history.keys()), self.window))
-      for key in self.history.keys():
-        agg_data[int(key[7:])] = self.history[key]
+      for i, key in enumerate(self.history.keys()):
+        agg_data[i] = self.history[key]
       agg_data = self.scaler.fit_transform(agg_data)
+      # make preds
       rankings = self.model.predict(agg_data.reshape(-1, 7, 1)).ravel()
       if self.online: # continue to train model during test phase
         self.train_y = agg_data[:,-1]
         if self.train_x is not None: # skips first day
           self.model.train_on_batch(self.train_x, self.train_y)
         self.train_x = agg_data.reshape(-1, 7, 1)
-      for i, r in enumerate(rankings):
-        self.ranking['content' + str(i)] = r
+      # map preds to content types
+      for i, key in enumerate(self.history.keys()):
+        self.ranking[key] = rankings[i]
     if self.interval_count == self.bootstrap_period:
       self.bootstrapping = False
 
