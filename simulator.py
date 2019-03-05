@@ -157,15 +157,14 @@ class Simulator:
         self.prev_cache_update = self.curr_day
         for ix, router in enumerate(self.net_core.routers):
           router.contentstore.refresh()
-          total = router.contentstore.hits + router.contentstore.misses
-          if total:
-            print(router.name + ' ' + self.policy +
-                  ' Hit Rate: ' + str(router.contentstore.hits/total))
+          # total = router.contentstore.hits + router.contentstore.misses
+          # if total:
+          #   print(router.name + ' ' + self.policy +
+          #         ' Hit Rate: ' + str(router.contentstore.hits/total))
       actor.execute()
       actor = self.get_next_actor()
-    for ix, router in enumerate(self.net_core.routers):
-      router.contentstore.refresh()
-      total = router.contentstore.hits + router.contentstore.misses
-      if total:
-        print(router.name + ' ' + self.policy +
-              ' Hit Rate: ' + str(router.contentstore.hits/total))
+    # for ix, router in enumerate(self.net_core.routers):
+    #   total = router.contentstore.hits + router.contentstore.misses
+    #   if total:
+    #     print(router.name + ' ' + self.policy +
+    #           ' Hit Rate: ' + str(router.contentstore.hits/total))
