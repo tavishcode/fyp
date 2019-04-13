@@ -69,7 +69,7 @@ def worker(fifo_recv_path, fifo_send_path):
                if victim == None: # Cache without replacement ?
                     reply_cache(fifo_send)
                 else:
-                    reply_replace_cache(fifo_send, f'{server} {victim}')   
+                    reply_replace_cache(fifo_send, server, victim)   
             else:
                 reply_nocache(fifo_send)
 
