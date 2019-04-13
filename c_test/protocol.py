@@ -63,21 +63,10 @@ def worker(fifo_recv_path, fifo_send_path):
 			# Received data
 			print(f'Recv Data: {server} {page}')
 
-			# After receiving a data packet, MUST perform one of three following options:
-            
-            # No need to cache
-			# reply_nocache(fifo_send)
-
-			# Cache without replacement
-			# reply_cache(fifo_send)
-
-			# Cache with replacement (victim: ccnx:/serverA/123)
-			# reply_replace_cache(fifo_send, 'ccnx:/serverA/123')
-
             should_cache, victim = cache.add(page)
 
-            if should_cache: # cache content ?
-               if victim == None: # cache without replacement ?
+            if should_cache: # Cache content ?
+               if victim == None: # Cache without replacement ?
                     reply_cache(fifo_send)
                 else:
                     reply_replace_cache(fifo_send, f'{server} {victim}')   
