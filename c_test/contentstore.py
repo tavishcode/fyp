@@ -87,7 +87,7 @@ class PretrainedCNNContentStore(ContentStore):
         portals_arr = np.load('../portals.npy')
         self.portals = {}
         for i in range(portals_arr.shape[0]):
-            self.portlas['ccnx:/serverA/' + str(i)] = portals_arr[i]
+            self.portlas[str(i)] = portals_arr[i]
 
     # add item to cache if more popular
     def add(self, item):
@@ -156,7 +156,7 @@ class PretrainedCNNContentStore(ContentStore):
             # reset stats
             for key in self.history.keys():
                 self.history[key] = np.concat((self.history[key][self.pred_length:], np.zeros(self.pred_length)))
-                
+
         if self.timestep == self.bootstrap_period:  # end bootstrap ?
             self.bootstrapping = False
 
