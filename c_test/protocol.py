@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
-
 import stat
 import os
+
+# cache imports
+from contentstore import PretrainedCNNContentStore as cs
+
+# constants
+CACHE_SIZE = 100
 
 # Tell Metis to cache this data packet (without cache replacement)
 def reply_cache(fifo_send):
@@ -22,6 +27,8 @@ def reply_replace_cache(fifo_send, victim):
 	fifo_send.flush()
 
 def worker(fifo_recv_path, fifo_send_path):
+    cache = cs(CACHE_SIZE)
+
 	if not stat.S_ISFIFO(os.stat(fifo_recv_path).st_mode):
 		os.mkfifo(fifo_recv_path)
 
@@ -45,20 +52,33 @@ def worker(fifo_recv_path, fifo_send_path):
 			# Received interest
 			print(f'Recv Interest: {name}')
 
+            # Records statistics
+            cache.get(name)
+
 		elif message_type == 'D':
 			# Received data
 			print(f'Recv Data: {name}')
 
 			# After receiving a data packet, MUST perform one of three following options:
-
-			# No need to cache
+            
+            # No need to cache
 			# reply_nocache(fifo_send)
 
 			# Cache without replacement
 			# reply_cache(fifo_send)
 
 			# Cache with replacement (victim: ccnx:/serverA/123)
-			reply_replace_cache(fifo_send, 'ccnx:/serverA/123')
+			# reply_replace_cache(fifo_send, 'ccnx:/serverA/123')
+
+            should_cache, victim = cache.add(name)
+
+            if should_cache: # cache content ?
+               if victim == None: # cache without replacement ?
+                    reply_cache(fifo_send)
+                else:
+                    reply_replace_cache(fifo_send, name)   
+            else:
+                reply_nocache(fifo_send)
 
 	fifo_recv.close()
 	fifo_send.close()
