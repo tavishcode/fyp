@@ -35,13 +35,19 @@ def reply_replace_cache(fifo_send, victim_server, victim_page):
     fifo_send.flush()
 
 
-def worker(fifo_recv_path, fifo_send_path):
-    cache = cs(CACHE_SIZE)
+def worker(fifo_recv_path, fifo_send_path,model):
+    cache = cs(CACHE_SIZE,model)
 
-    if not stat.S_ISFIFO(os.stat(fifo_recv_path).st_mode):
+    try:
+        if not stat.S_ISFIFO(os.stat(fifo_recv_path).st_mode):
+            os.mkfifo(fifo_recv_path)
+    except FileNotFoundError:
         os.mkfifo(fifo_recv_path)
-        
-    if not stat.S_ISFIFO(os.stat(fifo_send_path).st_mode):
+
+    try:    
+        if not stat.S_ISFIFO(os.stat(fifo_send_path).st_mode):
+            os.mkfifo(fifo_send_path)
+    except FileNotFoundError:
         os.mkfifo(fifo_send_path)
 
     print('Opening FIFO')
