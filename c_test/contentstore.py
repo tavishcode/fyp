@@ -155,7 +155,7 @@ class PretrainedCNNContentStore(ContentStore):
             
             # reset stats
             for key in self.history.keys():
-                self.history[key] = np.concat((self.history[key][self.pred_length:], np.zeros(self.pred_length)))
+                self.history[key] = np.concatenate((self.history[key][self.pred_length:], np.zeros(self.pred_length)))
 
         if self.timestep == self.bootstrap_period:  # end bootstrap ?
             self.bootstrapping = False

@@ -11,20 +11,27 @@ from contentstore import PretrainedCNNContentStore as cs
 CACHE_SIZE = 100
 
 # Tell Metis to cache this data packet (without cache replacement)
+
+
 def reply_cache(fifo_send):
 	fifo_send.write('Y')
 	fifo_send.flush()
 
 # Tell Metis no need to cache this data packet
+
+
 def reply_nocache(fifo_send):
 	fifo_send.write('N')
 	fifo_send.flush()
 
 # Tell Metis to cache this data packet, with "victim" being the victim of replacement
+
+
 def reply_replace_cache(fifo_send, victim_server, victim_page):
 	fifo_send.write('R')
 	fifo_send.write(f'{victim_server} {victim_page}')
 	fifo_send.flush()
+
 
 def worker(fifo_recv_path, fifo_send_path):
     cache = cs(CACHE_SIZE)
