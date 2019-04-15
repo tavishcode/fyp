@@ -1,3 +1,8 @@
+from collections import OrderedDict
+import numpy as np
+from keras.models import load_model
+from sklearn.preprocessing import MinMaxScaler
+
 class ContentStore:
     def __init__(self, size):
         self.size = size
@@ -50,7 +55,7 @@ class LruContentStore(ContentStore):
 
 
 class PretrainedCNNContentStore(ContentStore):
-    def __init__(self, size, online=False):
+    def __init__(self, size, model, online=False):
         super().__init__(size)
 
         # bootstrapping
@@ -70,8 +75,9 @@ class PretrainedCNNContentStore(ContentStore):
         self.req_counter = 0
 
         # ml-related
-        self.model = load_model(
-            '../pretrained_models/simple_conv_with_portals.h5')
+        # self.model = load_model(
+        #     '../trained_models/improved_simple_conv_with_portals.h5')
+        self.model = model
         self.scaler = MinMaxScaler()
 
         # stats
@@ -87,7 +93,7 @@ class PretrainedCNNContentStore(ContentStore):
         portals_arr = np.load('../portals.npy')
         self.portals = {}
         for i in range(portals_arr.shape[0]):
-            self.portlas[str(i)] = portals_arr[i]
+            self.portals[str(i)] = portals_arr[i]
 
     # add item to cache if more popular
     def add(self, item):
