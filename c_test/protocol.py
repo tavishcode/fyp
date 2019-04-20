@@ -97,7 +97,7 @@ def main():
     args = parser.parse_args()
 
     worker(args.capacity, args.fifo_recv,
-           args.fifo_send, args.capacity, args.model)
+           args.fifo_send, args.model)
 
 if __name__ == '__main__':
     main()
