@@ -7,10 +7,6 @@ import os
 # cache imports
 from contentstore import PretrainedCNNContentStore as cs
 
-
-# constants
-CACHE_SIZE = 100
-
 # Tell Metis to cache this data packet (without cache replacement)
 
 
@@ -35,8 +31,8 @@ def reply_replace_cache(fifo_send, victim_server, victim_page):
     fifo_send.flush()
 
 
-def worker(fifo_recv_path, fifo_send_path,model):
-    cache = cs(CACHE_SIZE,model)
+def worker(capacity, fifo_recv_path, fifo_send_path, model):
+    cache = cs(capacity, model)
 
     try:
         if not stat.S_ISFIFO(os.stat(fifo_recv_path).st_mode):
@@ -44,7 +40,7 @@ def worker(fifo_recv_path, fifo_send_path,model):
     except FileNotFoundError:
         os.mkfifo(fifo_recv_path)
 
-    try:    
+    try:
         if not stat.S_ISFIFO(os.stat(fifo_send_path).st_mode):
             os.mkfifo(fifo_send_path)
     except FileNotFoundError:
@@ -80,27 +76,28 @@ def worker(fifo_recv_path, fifo_send_path,model):
 
             should_cache, victim = cache.add(page)
 
-            if should_cache: # Cache content ?
-                if victim == None: # Cache without replacement ?
+            if should_cache:  # Cache content ?
+                if victim == None:  # Cache without replacement ?
                     reply_cache(fifo_send)
                 else:
-                    reply_replace_cache(fifo_send, server, victim)   
+                    reply_replace_cache(fifo_send, server, victim)
             else:
                 reply_nocache(fifo_send)
 
     fifo_recv.close()
     fifo_send.close()
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('capacity', type=str, help='capacity of content store') 
+    parser.add_argument('capacity', type=str, help='capacity of content store')
     parser.add_argument('fifo_recv', type=str, help='path to read FIFO')
     parser.add_argument('fifo_send', type=str, help='path to write FIFO')
-
+    parser.add_argument('model', type=str, help='path to trained model')
     args = parser.parse_args()
 
-    worker(args.fifo_recv, args.fifo_send)
-
+    worker(args.capacity, args.fifo_recv,
+           args.fifo_send, args.capacity, args.model)
 
 if __name__ == '__main__':
     main()
