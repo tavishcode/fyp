@@ -177,22 +177,22 @@ class PretrainedCNNContentStore(ContentStore):
             self.history[key] = np.zeros((self.window_length))
 
     def get_helper(self, item):
+        self.req_counter += 1
+        
+        if self.req_counter != 1 and (self.req_counter-1) % (self.reqs_per_day * self.window_length) == 0:
+            # if first update, copy over cache from bootstrap
+            if self.req_counter - 1 == self.reqs_per_day * self.window_length:
+                self.store = self.bootstrap.store
+            # print('start updating rankings')
+            self.update_rankings()
+            # print('finished updating rankings')
+        if item not in self.history:
+            self.history[item] = np.zeros(self.window_length)
+        if item not in self.ranking:
+            self.ranking[item] = np.zeros(self.pred_length)
+        # update history
+        self.history[item][self.get_curr_timestep()] += 1
         try:
-            self.req_counter += 1
-            
-            if self.req_counter != 1 and (self.req_counter-1) % (self.reqs_per_day * self.window_length) == 0:
-                # if first update, copy over cache from bootstrap
-                if self.req_counter - 1 == self.reqs_per_day * self.window_length:
-                    self.store = self.bootstrap.store
-                # print('start updating rankings')
-                self.update_rankings()
-                # print('finished updating rankings')
-            if item not in self.history:
-                self.history[item] = np.zeros(self.window_length)
-            if item not in self.ranking:
-                self.ranking[item] = np.zeros(self.pred_length)
-            # update history
-            self.history[item][self.get_curr_timestep()] += 1
             if self.bootstrapping:
                 cached_item = self.bootstrap.get(item)
             else:
