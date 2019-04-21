@@ -5,3 +5,4 @@ venv/
 data/
 *.csv
 .ipynb_checkpoints/
+tensorflow/
