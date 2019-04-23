@@ -74,6 +74,7 @@ class PretrainedCNNContentStore(ContentStore):
 
         # counter
         self.day = 0
+        self.update_day = self.window_length
 
         # ml-related
         self.model = load_model('../trained_models/opt_reshaped_simple_conv_with_portals.h5')
@@ -174,11 +175,14 @@ class PretrainedCNNContentStore(ContentStore):
     
     def update_stats(self, day, item):
         self.day = day
-        if self.day != 0 and self.day % self.window_length == 0:
+
+        if self.day == self.update_day:
             # if first update, copy over cache from bootstrap
-            if self.day == self.window_length:
+            if self.update_day == self.window_length:
                 self.store = self.bootstrap.store
             self.update_rankings()
+            self.update_day += self.pred_length
+
         if item not in self.history:
             self.history[item] = np.zeros(self.window_length)
         if item not in self.ranking:
