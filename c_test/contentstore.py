@@ -18,6 +18,9 @@ class ContentStore:
         # in derived classes
         pass
 
+    def update_stats(self, day, item):
+        pass
+
     def get(self, item):
         item = self.get_helper(item)
         if item != None:
@@ -67,11 +70,10 @@ class PretrainedCNNContentStore(ContentStore):
         self.pred_length = 7
         self.window_length = 7
         self.num_features = 11
-        self.reqs_per_day = 500000
         self.num_portals = 10
 
         # counter
-        self.req_counter = 0
+        self.day = 0
 
         # ml-related
         self.model = load_model('../trained_models/opt_reshaped_simple_conv_with_portals.h5')
@@ -88,12 +90,6 @@ class PretrainedCNNContentStore(ContentStore):
 
         # data
         self.portals = np.load('../portals_dict.npy').item()
-    
-    def get_curr_day(self):
-        return (self.req_counter - 1) // self.reqs_per_day
-    
-    def get_curr_timestep(self):
-        return self.get_curr_day() % self.pred_length
 
     def get_portal_key(self, item):
         # extract index from item name ex: from serverA/12 to 12
@@ -115,7 +111,7 @@ class PretrainedCNNContentStore(ContentStore):
                 if len(self.store) == self.size:
                     min_key, min_rank = self.get_least_popular()
                     # replace if curr item more popular than least popular in cache
-                    if min_rank != None and min_rank < self.ranking[item][self.get_curr_timestep()]:
+                    if min_rank != None and min_rank < self.ranking[item][self.day % self.pred_length]:
                         victim = min_key
                         self.store.pop(victim)
                         self.store[item] = item
@@ -130,8 +126,8 @@ class PretrainedCNNContentStore(ContentStore):
         min_item = None
         min_rank = None
         for item in self.store.keys():
-            if min_item == None or self.ranking[item][self.get_curr_timestep()] < min_rank:
-                min_rank = self.ranking[item][self.get_curr_timestep()]
+            if min_item == None or self.ranking[item][self.day % self.pred_length] < min_rank:
+                min_rank = self.ranking[item][self.day % self.pred_length]
                 min_item = item
         return min_item, min_rank
 
@@ -161,7 +157,6 @@ class PretrainedCNNContentStore(ContentStore):
         agg_data = np.concatenate((agg_data, portal_data), axis=2)
         
         # make preds
-
         predictions = self.predict_sequence(agg_data)  # update rankings                
         rankings = predictions[:, :, 0]
         
@@ -176,22 +171,22 @@ class PretrainedCNNContentStore(ContentStore):
         for key in self.history.keys():
             self.history[key] = np.zeros((self.window_length))
 
-    def get_helper(self, item):
-        self.req_counter += 1
-        
-        if self.req_counter != 1 and (self.req_counter-1) % (self.reqs_per_day * self.window_length) == 0:
+    
+    def update_stats(self, day, item):
+        self.day = day
+        if self.day != 0 and self.day % self.window_length == 0:
             # if first update, copy over cache from bootstrap
-            if self.req_counter - 1 == self.reqs_per_day * self.window_length:
+            if self.day == self.window_length:
                 self.store = self.bootstrap.store
-            # print('start updating rankings')
             self.update_rankings()
-            # print('finished updating rankings')
         if item not in self.history:
             self.history[item] = np.zeros(self.window_length)
         if item not in self.ranking:
             self.ranking[item] = np.zeros(self.pred_length)
         # update history
-        self.history[item][self.get_curr_timestep()] += 1
+        self.history[item][self.day % self.window_length] += 1
+
+    def get_helper(self, item):
         try:
             if self.bootstrapping:
                 cached_item = self.bootstrap.get(item)

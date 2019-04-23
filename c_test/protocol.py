@@ -65,9 +65,10 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
 
         if message_type == 'I':
             # Received interest
-            print(f'Recv Interest: {server} {page}')
+            print(f'Recv Interest: {day} {server} {page}') # assumes day starts at 0
 
             # Records statistics
+            cache.update_stats(day, page)
             cache.get(page)
 
         elif message_type == 'D':
