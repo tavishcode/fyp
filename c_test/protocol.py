@@ -65,14 +65,12 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
 
         if message_type == 'I':
             # Received interest
-            print(f'Recv Interest: {server} {page}')
 
             # Records statistics
             cache.get(page)
 
         elif message_type == 'D':
             # Received data
-            print(f'Recv Data: {server} {page}')
 
             should_cache, victim = cache.add(page)
 
@@ -90,13 +88,12 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('capacity', type=str, help='capacity of content store')
+    parser.add_argument('capacity', type=int, help='capacity of content store')
     parser.add_argument('fifo_recv', type=str, help='path to read FIFO')
     parser.add_argument('fifo_send', type=str, help='path to write FIFO')
     args = parser.parse_args()
 
-    worker(args.capacity, args.fifo_recv,
-           args.fifo_send, args.capacity)
+    worker(args.capacity, args.fifo_recv, args.fifo_send)
 
 
 if __name__ == '__main__':
