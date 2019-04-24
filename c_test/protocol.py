@@ -68,7 +68,6 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
 
         if message_type == 'I':
             # Received interest
-            # print(f'Recv Interest: {day} {server} {page}') # assumes day starts at 0
 
             # Records statistics
             cache.update_stats(day, page)
@@ -76,7 +75,6 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
 
         elif message_type == 'D':
             # Received data
-            # print(f'Recv Data: {server} {page}')
 
             should_cache, victim = cache.add(page)
 
@@ -99,8 +97,7 @@ def main():
     parser.add_argument('fifo_send', type=str, help='path to write FIFO')
     args = parser.parse_args()
 
-    worker(args.capacity, args.fifo_recv,
-           args.fifo_send)
+    worker(args.capacity, args.fifo_recv, args.fifo_send)
 
 
 if __name__ == '__main__':
