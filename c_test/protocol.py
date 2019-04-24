@@ -61,12 +61,16 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
         # message_type: {I, D}. I = interest D = data
         # server: server name
         # page: page index of wiki dataset. Index starts at 1.
-        message_type, server, page = data.split()
+        message_type, server, page, day = data.split()
+
+        day = int(day)
+        page = int(page)
 
         if message_type == 'I':
             # Received interest
 
             # Records statistics
+            cache.update_stats(day, page)
             cache.get(page)
 
         elif message_type == 'D':
