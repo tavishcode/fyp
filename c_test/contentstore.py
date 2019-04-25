@@ -172,16 +172,21 @@ class PretrainedCNNContentStore(ContentStore):
         for key in self.history.keys():
             self.history[key] = np.zeros((self.window_length))
 
+    def update_rankings_wrapper(self):
+        if self.update_day == self.window_length:
+            self.store = self.bootstrap.store
+        self.update_rankings()
+        self.update_day += self.pred_length
     
     def update_stats(self, day, item):
         self.day = day
 
-        if self.day == self.update_day:
-            # if first update, copy over cache from bootstrap
-            if self.update_day == self.window_length:
-                self.store = self.bootstrap.store
-            self.update_rankings()
-            self.update_day += self.pred_length
+        # if self.day == self.update_day:
+        #     # if first update, copy over cache from bootstrap
+        #     if self.update_day == self.window_length:
+        #         self.store = self.bootstrap.store
+        #     self.update_rankings()
+        #     self.update_day += self.pred_length
 
         if item not in self.history:
             self.history[item] = np.zeros(self.window_length)
