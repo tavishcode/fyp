@@ -114,7 +114,8 @@ class PretrainedCNNContentStore(ContentStore):
             if item in self.store or self.size <= 0:
                 return False, victim
             if self.size:
-                rank = self.ranking[item][self.day % self.pred_length]
+                item_table = self.ranking[item]
+                rank = item_table[self.day % self.pred_length]
                 if len(self.store) == self.size:
                     min_rank, min_item = self.get_least_popular()
                     if min_rank < rank:
@@ -177,6 +178,13 @@ class PretrainedCNNContentStore(ContentStore):
         # reset stats
         for key in self.history.keys():
             self.history[key] = np.zeros((self.window_length))
+
+    def update_rankings_wrapper(self):
+        # if first update, copy over cache from bootstrap
+        if self.rank_update_day == self.window_length:
+            self.store = self.bootstrap.store
+        self.update_rankings()
+        self.rank_update_day += self.pred_length
 
     
     def update_stats(self, day, item):
