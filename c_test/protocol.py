@@ -61,18 +61,20 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
         # message_type: {I, D}. I = interest D = data
         # server: server name
         # page: page index of wiki dataset. Index starts at 1.
-        message_type, server, page = data.split()
+        message_type, server, page, day = data.split()
+
+        day = int(day)
+        page = int(page)
 
         if message_type == 'I':
             # Received interest
-            print(f'Recv Interest: {server} {page}')
 
             # Records statistics
+            cache.update_stats(day, page)
             cache.get(page)
 
         elif message_type == 'D':
             # Received data
-            print(f'Recv Data: {server} {page}')
 
             should_cache, victim = cache.add(page)
 
@@ -90,13 +92,12 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('capacity', type=str, help='capacity of content store')
+    parser.add_argument('capacity', type=int, help='capacity of content store')
     parser.add_argument('fifo_recv', type=str, help='path to read FIFO')
     parser.add_argument('fifo_send', type=str, help='path to write FIFO')
     args = parser.parse_args()
 
-    worker(args.capacity, args.fifo_recv,
-           args.fifo_send, args.capacity)
+    worker(args.capacity, args.fifo_recv, args.fifo_send)
 
 
 if __name__ == '__main__':
