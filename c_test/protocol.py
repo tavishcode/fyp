@@ -3,6 +3,7 @@
 import argparse
 import stat
 import os
+import signal
 
 # cache imports
 from contentstore import PretrainedCNNContentStore as cs
@@ -33,6 +34,12 @@ def reply_replace_cache(fifo_send, victim_server, victim_page):
 
 def worker(capacity, fifo_recv_path, fifo_send_path):
     cache = cs(capacity)
+
+    def update_rankings(signal, frame):
+        print('Update rankings')
+        cache.update_rankings_wrapper()
+
+    signal.signal(signal.SIGUSR1, update_rankings)
 
     try:
         if not stat.S_ISFIFO(os.stat(fifo_recv_path).st_mode):
