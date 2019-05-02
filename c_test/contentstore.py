@@ -2,6 +2,7 @@ from collections import OrderedDict
 import numpy as np
 from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
+import heapq
 
 
 class ContentStore:
@@ -74,7 +75,8 @@ class PretrainedCNNContentStore(ContentStore):
 
         # counter
         self.day = 0
-        self.update_day = self.window_length
+        self.rank_update_day = self.window_length
+        self.heap_update_day = self.window_length
 
         # ml-related
         self.model = load_model('../trained_models/opt_reshaped_simple_conv_with_portals.h5')
@@ -88,6 +90,9 @@ class PretrainedCNNContentStore(ContentStore):
 
         # cache
         self.store = OrderedDict()
+
+        # O(1) extraction of item with lowest rank (cache priority) 
+        self.heap = []
 
         # data
         self.portals = np.load('../portals_dict.npy').item()
@@ -109,28 +114,34 @@ class PretrainedCNNContentStore(ContentStore):
             if item in self.store or self.size <= 0:
                 return False, victim
             if self.size:
-                if len(self.store) == self.size:
-                    min_key, min_rank = self.get_least_popular()
-                    # replace if curr item more popular than least popular in cache
-                    if min_rank != None and min_rank < self.ranking[item][self.day % self.pred_length]:
-                        victim = min_key
-                        self.store.pop(victim)
-                        self.store[item] = item
-                        return True, victim
-                    else:
-                        return False, victim
+                try:
+                    rank = self.ranking[item][self.day % self.pred_length]
+                except KeyError:
+                    print(f'KeyError for item {item}')
+                    return False, None
                 else:
-                    self.store[item] = item
-                    return True, victim
+                    if len(self.store) == self.size:
+                        min_rank, min_item = self.get_least_popular()
+                        if min_rank < rank:
+                            victim = min_item
+                            self.store.pop(victim)
+                            self.store[item] = item
+                            # add (curr_rank, item) into heap and remove lower priority item
+                            heapq.heapreplace(self.heap, (rank, item))
+                            return True, victim
+                        else:
+                            return False, victim
+                    else:
+                        self.store[item] = item
+                        # add (curr_rank, item) into heap
+                        heapq.heappush(self.heap, (rank, item))
+                        return True, victim
 
     def get_least_popular(self):
-        min_item = None
-        min_rank = None
-        for item in self.store.keys():
-            if min_item == None or self.ranking[item][self.day % self.pred_length] < min_rank:
-                min_rank = self.ranking[item][self.day % self.pred_length]
-                min_item = item
-        return min_item, min_rank
+        min_tuple = self.heap[0]
+        min_rank = min_tuple[0]
+        min_item = min_tuple[1]
+        return min_rank, min_item
 
     def update_rankings(self):
         self.bootstrapping = False
@@ -173,20 +184,23 @@ class PretrainedCNNContentStore(ContentStore):
             self.history[key] = np.zeros((self.window_length))
 
     def update_rankings_wrapper(self):
-        if self.update_day == self.window_length:
+        # if first update, copy over cache from bootstrap
+        if self.rank_update_day == self.window_length:
             self.store = self.bootstrap.store
-        self.update_rankings()
-        self.update_day += self.pred_length
+        if self.size > 0:
+            self.update_rankings()
+        self.rank_update_day += self.pred_length
     
     def update_stats(self, day, item):
         self.day = day
 
-        # if self.day == self.update_day:
-        #     # if first update, copy over cache from bootstrap
-        #     if self.update_day == self.window_length:
-        #         self.store = self.bootstrap.store
-        #     self.update_rankings()
-        #     self.update_day += self.pred_length
+
+        # reset heap with new rankings - happens daily
+        if self.day == self.heap_update_day:
+            self.heap = []
+            for item in self.store.keys():
+                heapq.heappush(self.heap, (self.ranking[item][self.day % self.pred_length], item))
+            self.heap_update_day += 1
 
         if item not in self.history:
             self.history[item] = np.zeros(self.window_length)

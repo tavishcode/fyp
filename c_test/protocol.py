@@ -77,19 +77,20 @@ def worker(capacity, fifo_recv_path, fifo_send_path):
             # Received interest
 
             # Records statistics
-            cache.update_stats(day, page)
-            cache.get(page)
+            cache.update_stats(day, (server, page))
+            cache.get((server, page))
 
         elif message_type == 'D':
             # Received data
 
-            should_cache, victim = cache.add(page)
+            should_cache, victim = cache.add((server, page))
 
             if should_cache:  # Cache content ?
                 if victim == None:  # Cache without replacement ?
                     reply_cache(fifo_send)
                 else:
-                    reply_replace_cache(fifo_send, server, victim)
+                    victim_server, victim_page = victim
+                    reply_replace_cache(fifo_send, victim_server, victim_page)
             else:
                 reply_nocache(fifo_send)
 
