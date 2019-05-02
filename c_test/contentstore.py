@@ -187,7 +187,8 @@ class PretrainedCNNContentStore(ContentStore):
         # if first update, copy over cache from bootstrap
         if self.rank_update_day == self.window_length:
             self.store = self.bootstrap.store
-        self.update_rankings()
+        if self.size > 0:
+            self.update_rankings()
         self.rank_update_day += self.pred_length
     
     def update_stats(self, day, item):
