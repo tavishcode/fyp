@@ -114,23 +114,28 @@ class PretrainedCNNContentStore(ContentStore):
             if item in self.store or self.size <= 0:
                 return False, victim
             if self.size:
-                rank = self.ranking[item][self.day % self.pred_length]
-                if len(self.store) == self.size:
-                    min_rank, min_item = self.get_least_popular()
-                    if min_rank < rank:
-                        victim = min_item
-                        self.store.pop(victim)
-                        self.store[item] = item
-                        # add (curr_rank, item) into heap and remove lower priority item
-                        heapq.heapreplace(self.heap, (rank, item))
-                        return True, victim
-                    else:
-                        return False, victim
+                try:
+                    rank = self.ranking[item][self.day % self.pred_length]
+                except KeyError:
+                    print(f'KeyError for item {item}')
+                    return False, None
                 else:
-                    self.store[item] = item
-                    # add (curr_rank, item) into heap
-                    heapq.heappush(self.heap, (rank, item))
-                    return True, victim
+                    if len(self.store) == self.size:
+                        min_rank, min_item = self.get_least_popular()
+                        if min_rank < rank:
+                            victim = min_item
+                            self.store.pop(victim)
+                            self.store[item] = item
+                            # add (curr_rank, item) into heap and remove lower priority item
+                            heapq.heapreplace(self.heap, (rank, item))
+                            return True, victim
+                        else:
+                            return False, victim
+                    else:
+                        self.store[item] = item
+                        # add (curr_rank, item) into heap
+                        heapq.heappush(self.heap, (rank, item))
+                        return True, victim
 
     def get_least_popular(self):
         min_tuple = self.heap[0]
@@ -178,16 +183,15 @@ class PretrainedCNNContentStore(ContentStore):
         for key in self.history.keys():
             self.history[key] = np.zeros((self.window_length))
 
+    def update_rankings_wrapper(self):
+        # if first update, copy over cache from bootstrap
+        if self.rank_update_day == self.window_length:
+            self.store = self.bootstrap.store
+        self.update_rankings()
+        self.rank_update_day += self.pred_length
     
     def update_stats(self, day, item):
         self.day = day
-
-        if self.day == self.rank_update_day:
-            # if first update, copy over cache from bootstrap
-            if self.rank_update_day == self.window_length:
-                self.store = self.bootstrap.store
-            self.update_rankings()
-            self.rank_update_day += self.pred_length
 
         # reset heap with new rankings - happens daily
         if self.day == self.heap_update_day:
