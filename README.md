@@ -12,10 +12,10 @@ Unique aspects of this work involve the selection of time-series based features 
 
 ### References
 
-Code for our optimal conv model is largely based on: https://github.com/JEddy92/TimeSeries_Seq2Seq/blob/master/notebooks/TS_Seq2Seq_Conv_Intro.ipynb
-Data Analysis process was heavily inspired by various kernels/notebooks on: https://www.kaggle.com/c/web-traffic-time-series-forecasting
-Time series dataset was obtained from: https://www.kaggle.com/c/web-traffic-time-series-forecasting
-Data on content types (ex: Film, Politics) was scraped from: https://www.wikipedia.org/
+- Code for our optimal conv model is largely based on: https://github.com/JEddy92/TimeSeries_Seq2Seq/blob/master/notebooks/TS_Seq2Seq_Conv_Intro.ipynb
+- Data Analysis process was heavily inspired by various kernels/notebooks on: https://www.kaggle.com/c/web-traffic-time-series-forecasting
+- Time series dataset was obtained from: https://www.kaggle.com/c/web-traffic-time-series-forecasting
+- Data on content types (ex: Film, Politics) was scraped from: https://www.wikipedia.org/
 
 ### Team Members
 
